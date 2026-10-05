@@ -1,0 +1,212 @@
+// Data model — mirrors SPEC.md §3. Change SPEC.md first, then this file.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  BUYER
+  SELLER
+  MANAGER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+enum Category {
+  BANK
+  FINTECH
+  PAYMENT
+  EMI
+  CRYPTO
+}
+
+enum BusinessStatus {
+  ACTIVE
+  LICENSE_ONLY
+}
+
+/// HIDDEN is set by a manager; DRAFT/PUBLISHED by the owner.
+enum AssetStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+  REMOVED
+}
+
+enum BuyerType {
+  PE_FUND
+  STRATEGIC
+  FAMILY_OFFICE
+  FINTECH_OPERATOR
+  INDIVIDUAL
+}
+
+enum StatusPref {
+  ANY
+  ACTIVE
+  LICENSE_ONLY
+}
+
+enum Timeline {
+  IMMEDIATE
+  WITHIN_3_MONTHS
+  WITHIN_6_MONTHS
+  EXPLORING
+}
+
+enum ModerationAction {
+  SUSPEND_USER
+  REINSTATE_USER
+  REMOVE_USER
+  HIDE_ASSET
+  UNHIDE_ASSET
+  REMOVE_ASSET
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  companyName  String?
+  role         Role
+  status       UserStatus @default(ACTIVE)
+  statusReason String?
+  createdAt    DateTime   @default(now())
+
+  buyerProfile        BuyerProfile?
+  assets              Asset[]
+  sessions            Session[]
+  buyerConversations  Conversation[]  @relation("ConversationBuyer")
+  sellerConversations Conversation[]  @relation("ConversationSeller")
+  messages            Message[]
+  moderationActions   ModerationLog[] @relation("ModerationManager")
+  moderationTargets   ModerationLog[] @relation("ModerationTargetUser")
+
+  @@index([role, status])
+}
+
+model Session {
+  /// SHA-256 of the cookie token, never the raw token.
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model BuyerProfile {
+  userId       String     @id
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buyerType    BuyerType
+  ticketMinEur Int?
+  ticketMaxEur Int?
+  categories   Category[]
+  /// ISO 3166-1 alpha-2; empty = any.
+  countries    String[]
+  statusPref   StatusPref @default(ANY)
+  timeline     Timeline   @default(EXPLORING)
+  /// Investment / acquisition interests, free text.
+  thesis       String
+  isVisible    Boolean    @default(true)
+  updatedAt    DateTime   @updatedAt
+}
+
+model Asset {
+  id             String         @id @default(cuid())
+  /// e.g. "malta-emi-751"
+  slug           String         @unique
+  sellerId       String
+  seller         User           @relation(fields: [sellerId], references: [id])
+  title          String
+  category       Category
+  businessStatus BusinessStatus
+  /// ISO 3166-1 alpha-2.
+  country        String
+  /// e.g. "MFSA"
+  regulator      String?
+  /// e.g. "EMI", "PI", "CASP", "Banking"
+  licenseType    String
+  otherLicenses  String[]
+  yearOfIssue    Int?
+  employees      Int?
+  /// Whole euros; null = price on request.
+  priceEur       Int?
+  /// Tag chips, e.g. "MiCA registered".
+  benefits       String[]
+  description    String
+  status         AssetStatus    @default(DRAFT)
+  /// Set when a manager hides or removes the asset.
+  statusReason   String?
+  publishedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  conversations  Conversation[]
+  moderationLogs ModerationLog[]
+
+  @@index([status, category])
+  @@index([country])
+  @@index([sellerId])
+}
+
+model Conversation {
+  id             String    @id @default(cuid())
+  assetId        String
+  asset          Asset     @relation(fields: [assetId], references: [id])
+  buyerId        String
+  buyer          User      @relation("ConversationBuyer", fields: [buyerId], references: [id])
+  sellerId       String
+  seller         User      @relation("ConversationSeller", fields: [sellerId], references: [id])
+  /// BUYER or SELLER.
+  initiatedBy    Role
+  buyerLastRead  DateTime?
+  sellerLastRead DateTime?
+  lastMessageAt  DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  messages       Message[]
+
+  /// One thread per buyer per asset.
+  @@unique([assetId, buyerId])
+  @@index([buyerId, lastMessageAt])
+  @@index([sellerId, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  /// 1–2000 chars, enforced by Zod.
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model ModerationLog {
+  id            String           @id @default(cuid())
+  managerId     String
+  manager       User             @relation("ModerationManager", fields: [managerId], references: [id])
+  action        ModerationAction
+  targetUserId  String?
+  targetUser    User?            @relation("ModerationTargetUser", fields: [targetUserId], references: [id])
+  targetAssetId String?
+  targetAsset   Asset?           @relation(fields: [targetAssetId], references: [id])
+  reason        String
+  createdAt     DateTime         @default(now())
+
+  @@index([createdAt])
+}

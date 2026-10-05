@@ -8,8 +8,8 @@ Visual reference: [n5deal.com/all-listing](https://n5deal.com/all-listing). The 
 spec lives in [`SPEC.md`](./SPEC.md); it is the source of truth and changes before the code
 does.
 
-> **Status:** M0 — project skeleton. Sections marked _TBD_ are filled in by later
-> milestones.
+> **Status:** M1 — foundation (database, seed, catalog list, deploy). Sections marked
+> _TBD_ are filled in by later milestones.
 
 ---
 
@@ -28,15 +28,25 @@ does.
 
 ## Launch locally
 
-_TBD (M1) — final commands once Prisma and the seed exist._
+Requirements: Node.js 20+, npm, and Docker (or any PostgreSQL 15+ database).
 
 ```bash
-cp .env.example .env        # DATABASE_URL (required), ANTHROPIC_API_KEY (optional)
-npm install
-npx prisma migrate dev
-npx prisma db seed
+npm install                 # also generates the Prisma client
+cp .env.example .env        # defaults point at the Docker database below
+npm run db:up               # PostgreSQL 17 in Docker on port 5433
+npx prisma migrate deploy   # create the schema
+npm run db:seed             # wipe and re-create the demo data (deterministic)
 npm run dev                 # http://localhost:3000
 ```
+
+Demo password for every seeded account: `n5deal-demo`.
+
+| Script | What it does |
+|---|---|
+| `npm run db:migrate` | Create and apply a new migration after editing `prisma/schema.prisma` |
+| `npm run db:reset` | Drop everything and re-apply migrations, then run `npm run db:seed` |
+| `npm run db:studio` | Browse the database in Prisma Studio |
+| `npm run typecheck` / `npm run lint` | TypeScript and ESLint checks |
 
 ---
 
@@ -103,7 +113,7 @@ A random 32-byte token in an `httpOnly`, `Secure`, `SameSite=Lax` cookie; the da
 stores only its SHA-256 hash. `getCurrentUser()` is wrapped in React `cache()` so it runs
 once per request and rejects any user who is not `ACTIVE`. Suspending a user deletes their
 sessions, so the effect is immediate — a JWT would stay valid until it expires. Passwords
-use bcrypt (cost 10).
+use bcrypt (cost 10) via the pure-JS `bcryptjs`, so there is no native build step on Vercel.
 
 ### Derived visibility
 
@@ -122,6 +132,20 @@ issues.
 `categories`, `countries`, `otherLicenses`, and `benefits` are PostgreSQL array columns.
 Moving to MySQL (N5Deal's stack) would turn them into join tables.
 
+### One PostgreSQL driver everywhere
+
+Prisma 7 talks to the database through a driver adapter. The app uses `@prisma/adapter-pg`
+(node-postgres) both locally and on Neon: Neon accepts standard TCP connections through
+its pooler, so there is one code path to test. The Prisma CLI uses Neon's direct
+(unpooled) URL for migrations, because PgBouncer does not support the session features they
+need.
+
+### Deterministic seed
+
+`prisma/seed.ts` truncates every table and inserts fixed IDs with timestamps derived from
+one anchor date, so every run produces identical data (verified by checksumming the tables
+across two runs). Re-running the seed is also the "reset the demo" button.
+
 ### URL is the filter state
 
 Catalog filters live in the query string (shareable, survive refresh). `searchParams` is
@@ -130,7 +154,7 @@ awaited and parsed by a Zod schema that drops invalid values instead of crashing
 ### Stack
 
 Next.js 16 (App Router, React Compiler) · TypeScript strict · Tailwind CSS v4 + shadcn/ui ·
-Prisma · PostgreSQL on Neon · Zod · bcrypt · Anthropic SDK (Claude Haiku 4.5) · Vitest ·
+Prisma · PostgreSQL on Neon · Zod · bcryptjs · Anthropic SDK (Claude Haiku 4.5) · Vitest ·
 Playwright · Vercel.
 
 ---

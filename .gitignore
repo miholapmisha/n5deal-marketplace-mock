@@ -46,3 +46,9 @@ next-env.d.ts
 
 # claude code local settings
 .claude/settings.local.json
+
+# prisma generated client (rebuilt by `prisma generate` on install)
+/src/generated/
+
+# playwright MCP scratch output
+/.playwright-mcp/

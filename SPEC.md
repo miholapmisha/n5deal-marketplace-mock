@@ -82,6 +82,12 @@ model User {
   buyerProfile  BuyerProfile?
   assets        Asset[]
   sessions      Session[]
+  buyerConversations   Conversation[]  @relation("ConversationBuyer")
+  sellerConversations  Conversation[]  @relation("ConversationSeller")
+  messages             Message[]
+  moderationActions    ModerationLog[] @relation("ModerationManager")
+  moderationTargets    ModerationLog[] @relation("ModerationTargetUser")
+  @@index([role, status])
 }
 
 model Session {
@@ -130,8 +136,11 @@ model Asset {
   publishedAt     DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  conversations   Conversation[]
+  moderationLogs  ModerationLog[]
   @@index([status, category])
   @@index([country])
+  @@index([sellerId])
 }
 
 model Conversation {
@@ -139,7 +148,9 @@ model Conversation {
   assetId         String
   asset           Asset     @relation(fields: [assetId], references: [id])
   buyerId         String
+  buyer           User      @relation("ConversationBuyer", fields: [buyerId], references: [id])
   sellerId        String
+  seller          User      @relation("ConversationSeller", fields: [sellerId], references: [id])
   initiatedBy     Role                     // BUYER or SELLER
   buyerLastRead   DateTime?
   sellerLastRead  DateTime?
@@ -156,6 +167,7 @@ model Message {
   conversationId  String
   conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   senderId        String
+  sender          User         @relation(fields: [senderId], references: [id])
   body            String                   // 1–2000 chars
   createdAt       DateTime     @default(now())
   @@index([conversationId, createdAt])
@@ -164,9 +176,12 @@ model Message {
 model ModerationLog {
   id             String           @id @default(cuid())
   managerId      String
+  manager        User             @relation("ModerationManager", fields: [managerId], references: [id])
   action         ModerationAction
   targetUserId   String?
+  targetUser     User?            @relation("ModerationTargetUser", fields: [targetUserId], references: [id])
   targetAssetId  String?
+  targetAsset    Asset?           @relation(fields: [targetAssetId], references: [id])
   reason         String
   createdAt      DateTime         @default(now())
   @@index([createdAt])
@@ -182,6 +197,9 @@ Model notes:
   the README.
 - Suspension does **not** mutate assets. Visibility is derived from the seller's status at
   query time, so reinstating a seller restores everything with no data repair.
+- Every `*Id` column referencing a user or asset is a real foreign key (named relations
+  where `User` is referenced twice). Users and assets are never hard-deleted — removal is a
+  status — so these FKs never block a moderation action.
 
 ---
 
@@ -410,12 +428,12 @@ Rules:
    React `cache()` so it runs once per request, and it rejects any user who is not `ACTIVE`.
    Suspending a user deletes their sessions, so the effect is immediate — unlike a JWT,
    which stays valid until it expires.
-5. Passwords: bcrypt (cost 10).
+5. Passwords: bcrypt (cost 10) via `bcryptjs` — pure JS, so no native build step on Vercel.
 6. `searchParams` is a Promise in current Next.js: await it, then parse with a Zod schema
    in `lib/` that drops invalid values.
 
 **Stack:** Next.js (App Router) · TypeScript strict · Tailwind CSS + shadcn/ui · Prisma ·
-PostgreSQL on Neon · Zod · bcrypt · Anthropic SDK · Vitest · Playwright · Vercel.
+PostgreSQL on Neon · Zod · bcryptjs · Anthropic SDK · Vitest · Playwright · Vercel.
 
 Why one Next.js app instead of a separate NestJS backend: one deploy, types shared end to
 end, no CORS or cross-domain cookies, and it matches N5Deal's move to Next.js/TypeScript.

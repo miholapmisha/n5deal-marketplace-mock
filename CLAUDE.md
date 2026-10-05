@@ -8,24 +8,42 @@ truth.** If a decision changes, update `SPEC.md` first, then the code.
 ## Commands
 
 ```bash
-npm run dev      # dev server, http://localhost:3000
-npm run build    # production build (run before every milestone commit)
-npm run lint     # ESLint (flat config, eslint-config-next)
+npm run dev         # dev server, http://localhost:3000
+npm run build       # production build (run before every milestone commit)
+npm run typecheck   # tsc --noEmit
+npm run lint        # ESLint (flat config, eslint-config-next)
+npm run db:up       # local Postgres 17 in Docker, port 5433 (container n5deal_postgres)
+npm run db:migrate  # prisma migrate dev — after editing prisma/schema.prisma
+npm run db:seed     # TRUNCATES all tables, then re-inserts deterministic demo data
+npx prisma generate # regenerate the client (migrate dev does NOT do this in Prisma 7)
 ```
 
-Later milestones add: `npx prisma migrate dev`, `npx prisma db seed` (M1), `npm test`
-(Vitest), `npx playwright test` (M9).
+Port 5432 belongs to another project's container (`orchestrator_postgres`) — never touch
+it. Later milestones add `npm test` (Vitest) and `npx playwright test` (M9).
 
 ## Stack
 
 Next.js 16.3 App Router · React 19 + React Compiler · TypeScript strict · Tailwind v4
-(CSS-first config in `src/app/globals.css`, no `tailwind.config.*`) · shadcn/ui · Prisma +
-PostgreSQL (Neon) · Zod · bcrypt · Anthropic SDK · Vitest · Playwright · Vercel. Package
-manager: **npm**.
+(CSS-first config in `src/app/globals.css`, no `tailwind.config.*`) · shadcn/ui (Radix,
+"nova" preset; add components with `npx shadcn@latest add <name>`) · Prisma 7 +
+PostgreSQL (Neon) · Zod 4 · bcryptjs · Anthropic SDK · Vitest · Playwright · Vercel.
+Package manager: **npm**.
 
 Next.js 16 differs from older versions: `middleware.ts` is now `proxy.ts`; `params` and
 `searchParams` are Promises. Check `node_modules/next/dist/docs/` before using an API you
-are unsure of.
+are unsure of. A page that reads the DB but no request data must `await connection()`
+(from `next/server`), or it is prerendered once at build time.
+
+Prisma 7 differs too: config lives in `prisma.config.ts` (loads `.env` via dotenv); the
+client is generated to `src/generated/prisma` (gitignored) and imported from
+`@/generated/prisma/client`; client-safe enums from `@/generated/prisma/enums`; the
+connection goes through `@prisma/adapter-pg`. Import the app's client only from
+`@/server/db`. The CLI prefers `DATABASE_URL_UNPOOLED` (direct) over `DATABASE_URL`
+(pooled). Prisma CLI is pinned to 7.10.0: npm's `latest` tag points at an 8.0 RC.
+
+Theme tokens (sampled from n5deal.com) live in `src/app/globals.css`: `primary` #383bfe,
+`success` #059669, `row` / `row-border` for label–value rows, `pill` for active tabs,
+`shadow-card`. Use these tokens, not raw hex values.
 
 ## Architecture rules (SPEC §6)
 
