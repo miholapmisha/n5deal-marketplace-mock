@@ -90,7 +90,7 @@ Each file has these sections:
 ## Progress
 
 - [x] M0 — Next.js scaffold, git, README skeleton, CLAUDE.md
-- [ ] M1 — Tailwind + shadcn, Prisma schema, Neon, seed, Vercel deploy
+- [x] M1 — Tailwind + shadcn, Prisma schema, Neon, seed, Vercel deploy (https://n5deal-marketplace-mock.vercel.app)
 - [ ] M2 — Sessions, register/login, demo login, guards, `/suspended`
 - [ ] M3 — Catalog + detail + URL filters + facet counts
 - [ ] M4 — Asset form, my assets, buyer profile
@@ -99,3 +99,11 @@ Each file has these sections:
 - [ ] M7 — Manager + moderation
 - [ ] M8 — AI search + fallback
 - [ ] M9 — Tests, README final, polish
+
+## Deployment
+
+GitHub `miholapmisha/n5deal-marketplace-mock` → Vercel (auto-deploys on push to `main`).
+`vercel.json` pins the build to `npm run vercel-build` (`prisma migrate deploy && next build`).
+Neon is connected through the Vercel integration (`DATABASE_URL` pooled,
+`DATABASE_URL_UNPOOLED` direct). Seeding production is manual and destructive — the
+developer runs it from their own terminal; never put Neon credentials in this repo or chat.

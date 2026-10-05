@@ -15,7 +15,7 @@ does.
 
 ## Live demo
 
-- **Deployed URL:** _TBD (M1)_
+- **Deployed URL:** https://n5deal-marketplace-mock.vercel.app
 - **Demo accounts** (one-click login on `/login`, password shown under the cards):
 
   | Role | Email | What it shows |
