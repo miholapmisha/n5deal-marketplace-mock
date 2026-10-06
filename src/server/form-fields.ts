@@ -6,6 +6,12 @@ import { parsePriceInput } from "@/lib/catalog-filters";
 
 // Zod building blocks for forms whose values arrive as the strings a person typed.
 
+/** Record IDs: cuids in production, readable IDs in the seed (`ast_101`, `conv_demo_lt_emi`). */
+export const recordId = z
+  .string()
+  .trim()
+  .regex(/^[a-z0-9_]{1,64}$/i);
+
 /** "" → null; otherwise whole euros ("500000", "500 000", "500,000"), or an error. */
 export function optionalEuros(label: string) {
   return z

@@ -1,13 +1,29 @@
+import { MessagesSquare } from "lucide-react";
 import type { Metadata } from "next";
 
-import { PlaceholderPage } from "@/components/placeholder-page";
 import { requireRole } from "@/server/auth/guards";
+import { listConversations } from "@/server/messaging/message.service";
 
 export const metadata: Metadata = {
   title: "Messages",
 };
 
-export default async function Page() {
+// Desktop right pane before a thread is picked. On phones the list fills the screen instead.
+export default async function MessagesPage() {
   const user = await requireRole("BUYER", "SELLER");
-  return <PlaceholderPage title="Messages" milestone="M5" user={user} />;
+  const conversations = await listConversations();
+  const text =
+    conversations.length > 0
+      ? "Pick a conversation on the left to read it and reply."
+      : user.role === "BUYER"
+        ? "Conversations with sellers appear here once you contact one from an asset page."
+        : "Conversations with buyers appear here once a buyer contacts you or you contact one.";
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
+      <MessagesSquare className="size-10 text-primary/60" aria-hidden />
+      <p className="font-semibold">{conversations.length > 0 ? "Select a conversation" : "Your inbox is empty"}</p>
+      <p className="max-w-sm text-sm text-muted-foreground">{text}</p>
+    </div>
+  );
 }

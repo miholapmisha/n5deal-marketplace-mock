@@ -44,3 +44,11 @@ const shortDate = new Intl.DateTimeFormat("en-GB", {
 export function formatDate(date: Date): string {
   return shortDate.format(date);
 }
+
+/** A buyer's ticket: "€500K – €3M", "From €500K", "Up to €3M", or "Not specified". */
+export function formatTicketRange(minEur: number | null, maxEur: number | null): string {
+  if (minEur !== null && maxEur !== null) return `${compactEur.format(minEur)} – ${compactEur.format(maxEur)}`;
+  if (minEur !== null) return `From ${compactEur.format(minEur)}`;
+  if (maxEur !== null) return `Up to ${compactEur.format(maxEur)}`;
+  return "Not specified";
+}

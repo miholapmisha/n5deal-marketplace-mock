@@ -19,6 +19,22 @@ export async function findBuyerProfile(userId: string) {
   return db.buyerProfile.findUnique({ where: { userId }, select: profileSelect });
 }
 
+/** S9: a buyer with their profile, plus what visibility needs (role, status, isVisible). */
+export async function findBuyerDetail(userId: string) {
+  return db.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      companyName: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      buyerProfile: { select: { ...profileSelect, updatedAt: true } },
+    },
+  });
+}
+
 /**
  * Creates or replaces the profile and stores the company on the user, atomically. Returns
  * whether the profile existed before (the first save ends onboarding).

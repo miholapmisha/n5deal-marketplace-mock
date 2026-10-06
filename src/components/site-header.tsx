@@ -5,26 +5,28 @@ import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
 import type { Role } from "@/generated/prisma/enums";
 import { ROLE_LABELS } from "@/lib/labels";
+import { MESSAGES_PATH } from "@/lib/messaging";
 import { logoutAction } from "@/server/auth/auth.actions";
 import { getCurrentUser } from "@/server/auth/session";
+import { getUnreadConversationCount } from "@/server/messaging/message.service";
 
 interface NavLink {
   href: string;
   label: string;
 }
 
-// SPEC §5 "Global header by role". Unread counts on Messages arrive with messaging (M5).
+// SPEC §5 "Global header by role". Messages carries the unread-conversation count.
 const NAV_BY_ROLE: Record<Role | "ANONYMOUS", NavLink[]> = {
   ANONYMOUS: [{ href: "/assets", label: "All listings" }],
   BUYER: [
     { href: "/assets", label: "Assets" },
-    { href: "/messages", label: "Messages" },
+    { href: MESSAGES_PATH, label: "Messages" },
     { href: "/profile", label: "My profile" },
   ],
   SELLER: [
     { href: "/buyers", label: "Buyers" },
     { href: "/seller/assets", label: "My assets" },
-    { href: "/messages", label: "Messages" },
+    { href: MESSAGES_PATH, label: "Messages" },
   ],
   MANAGER: [
     { href: "/manager", label: "Overview" },
@@ -35,6 +37,7 @@ const NAV_BY_ROLE: Record<Role | "ANONYMOUS", NavLink[]> = {
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const links = NAV_BY_ROLE[user?.role ?? "ANONYMOUS"];
+  const unread = await getUnreadConversationCount();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur">
@@ -48,11 +51,17 @@ export async function SiteHeader() {
 
         <nav
           aria-label="Main"
-          className="order-last -mx-4 flex w-[calc(100%+2rem)] gap-5 overflow-x-auto px-4 pb-2 text-sm font-medium whitespace-nowrap md:order-none md:mx-0 md:w-auto md:p-0"
+          className="order-last -mx-4 flex w-[calc(100%+2rem)] gap-5 overflow-x-auto px-4 pb-2 text-sm font-medium whitespace-nowrap md:order-0 md:mx-0 md:w-auto md:p-0"
         >
           {links.map((link) => (
-            <Link key={link.href} href={link.href} className="py-1 hover:text-primary">
+            <Link key={link.href} href={link.href} className="flex items-center gap-1.5 py-1 hover:text-primary">
               {link.label}
+              {link.href === MESSAGES_PATH && unread > 0 && (
+                <span className="min-w-5 rounded-full bg-primary px-1.5 text-center text-xs leading-5 font-semibold text-primary-foreground">
+                  {unread}
+                  <span className="sr-only"> unread</span>
+                </span>
+              )}
             </Link>
           ))}
         </nav>

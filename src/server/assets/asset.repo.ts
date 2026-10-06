@@ -1,9 +1,10 @@
 import "server-only";
 
-import { type AssetStatus, type Category, Prisma } from "@/generated/prisma/client";
+import type { AssetStatus, Category, Prisma } from "@/generated/prisma/client";
 import { type CatalogFilters, type CatalogSort, MAX_KEYWORDS } from "@/lib/catalog-filters";
 import { countryCodesMatching } from "@/lib/countries";
 import { db } from "@/server/db";
+import { isUniqueViolation } from "@/server/prisma-errors";
 import { publicAssetWhere } from "@/server/policies/asset-visibility";
 
 // Fields the catalog card needs. Seller identity is deliberately excluded (SPEC §1.4).
@@ -175,10 +176,6 @@ export async function findAssetForEdit(assetId: string) {
 export type AssetWriteData = Omit<Prisma.AssetUncheckedCreateInput, "id" | "slug" | "createdAt" | "updatedAt">;
 
 const SLUG_ATTEMPTS = 3;
-
-function isUniqueViolation(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
-}
 
 /** Inserts with a fresh slug from `nextSlug`, retrying if one is already taken. */
 export async function insertAsset(data: AssetWriteData, nextSlug: () => string): Promise<{ slug: string }> {

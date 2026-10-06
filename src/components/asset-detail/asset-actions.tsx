@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { UnpublishButton } from "@/components/asset-detail/unpublish-button";
 import { Button } from "@/components/ui/button";
+import { conversationPath, newConversationPath } from "@/lib/messaging";
 import type { AssetDetailView } from "@/server/assets/asset.service";
 
 const buttonClass = "h-10 w-full rounded-full";
@@ -46,14 +47,14 @@ export function AssetActions({ view }: { view: AssetDetailView }) {
     case "BUYER":
       return conversationId ? (
         <Button asChild className={buttonClass}>
-          <Link href={`/messages/${conversationId}`}>
+          <Link href={conversationPath(conversationId)}>
             <MessagesSquare aria-hidden />
             Open conversation
           </Link>
         </Button>
       ) : (
         <Button asChild className={buttonClass}>
-          <Link href={`/messages?asset=${encodeURIComponent(asset.slug)}`}>
+          <Link href={newConversationPath(asset.slug)}>
             <MessageSquare aria-hidden />
             Contact seller
           </Link>

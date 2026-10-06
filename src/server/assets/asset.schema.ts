@@ -6,15 +6,9 @@ import { BusinessStatus, Category } from "@/generated/prisma/enums";
 import { ASSET_INTENTS, ASSET_LIMITS as L } from "@/lib/asset-form";
 import { parsePriceInput } from "@/lib/catalog-filters";
 import { isCountryCode } from "@/lib/countries";
-import { chipList, optionalWholeNumber } from "@/server/form-fields";
+import { chipList, optionalWholeNumber, recordId } from "@/server/form-fields";
 
-/** Asset IDs are cuids in production and `ast_<n>` in the seed. */
-const assetId = z
-  .string()
-  .trim()
-  .regex(/^[a-z0-9_]{1,64}$/i);
-
-export const assetIdSchema = z.object({ assetId });
+export const assetIdSchema = z.object({ assetId: recordId });
 
 /** Returned to `useActionState` by owner actions on an asset. */
 export interface AssetActionState {
@@ -25,7 +19,7 @@ export interface AssetActionState {
 
 /** Which asset (absent = a new one) and what to do with it. The values are parsed apart. */
 export const saveAssetMetaSchema = z.object({
-  assetId: assetId.optional(),
+  assetId: recordId.optional(),
   intent: z.enum(ASSET_INTENTS),
 });
 

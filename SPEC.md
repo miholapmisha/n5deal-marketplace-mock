@@ -276,11 +276,17 @@ Global header by role:
 - After login: the page the user was sent away from (`?next=`, same-origin paths only),
   otherwise the role's home — Buyer → S3, Seller → S6, Manager → S10.
 
-**S2. Messages — `/messages`, `/messages/[id]`**
+**S2. Messages — `/messages`, `/messages/[id]`, `/messages/new?asset=<slug>`**
 - Desktop: two panes. Left: conversations (counterpart, asset title, last message
   preview, time, unread dot). Right: thread with an asset card on top, messages, and a
   composer.
 - Mobile: list → thread.
+- `/messages/new?asset=<slug>` is the buyer's first message about an asset (from S4). If
+  the thread already exists, it redirects there.
+- Unread: a conversation is unread when its last message is newer than the viewer's
+  `*LastRead`. Sending a message marks the thread read for the sender; opening it marks it
+  read up to the newest message shown. The header count is the number of unread
+  conversations.
 - Banner + disabled composer when the counterpart is suspended or removed.
 - Empty state: Buyer → "Browse assets"; Seller → "Find buyers".
 
@@ -559,8 +565,8 @@ Each milestone ends with a commit and a working deploy.
 | M2 | Sessions, register/login, demo login, guards, `/suspended` | All three demo logins work on prod | 1.5h |
 | M3 | S3 catalog + S4 detail + filters in the URL + facet counts | Filter → refresh → same results | 2.5h |
 | M4 | S7 form + S6 my assets + S5 buyer profile | Seller publishes an asset; it appears in S3 | 2h |
-| M5 | S2 messaging + contact flows from S4 and S9 | Buyer ↔ seller thread survives refresh | 1.5h |
-| M6 | S8/S9 buyer directory + match score both ways | Seller ranks buyers for an asset | 1h |
+| M5 | S2 messaging + contact flows from S4 and S9 (S9 page built here) | Buyer ↔ seller thread survives refresh | 1.5h |
+| M6 | S8 buyer directory + match score both ways (and on S9) | Seller ranks buyers for an asset | 1h |
 | M7 | S10/S11 manager + moderation rules + log | Suspend → content hidden, sessions gone | 1h |
 | M8 | AI search + fallback | Natural-language query → correct chips | 1h |
 | M9 | Vitest + Playwright, README final, polish | Tests green, README complete | 1h |

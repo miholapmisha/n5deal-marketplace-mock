@@ -174,6 +174,19 @@ until the server answers). Category tab counts are facet counts — every filter
 category — and the same `GROUP BY` also yields the result total, so no separate `COUNT(*)`
 is needed; it runs in parallel with the page query.
 
+### Messaging: one thread per buyer per asset, no realtime
+
+A conversation is tied to one asset, and `@@unique([assetId, buyerId])` makes "contact" idempotent:
+a second first message (double click, two tabs, buyer and seller at once) lands in the
+existing thread. The write is an upsert plus the message in one transaction, retried once on
+a unique violation. Unread state is two timestamps per thread (`buyerLastRead`,
+`sellerLastRead`) compared with `lastMessageAt` — the header count is one `COUNT` using Prisma
+field references, with no per-message read rows. The thread is marked read by a server action
+fired after it renders, so a page render (or a link prefetch) never writes. Sent messages show
+at once via `useOptimistic`; new messages from the other side appear on the next navigation or
+refresh (realtime is out of scope). Sending is refused in the service when the counterpart is
+suspended or removed; the thread stays readable with a banner.
+
 ### Stack
 
 Next.js 16 (App Router, React Compiler) · TypeScript strict · Tailwind CSS v4 + shadcn/ui ·
