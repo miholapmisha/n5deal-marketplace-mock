@@ -301,7 +301,11 @@ Global header by role:
   License, Regulator), up to 3 benefit chips, 2-line description, *View asset*. A logged-in
   Buyer also sees a **match badge** ("92% match").
 - All filter state lives in the URL query string (shareable, survives refresh). Invalid
-  params are ignored, never a crash.
+  params are ignored, never a crash. Keys: `q`, `category`, `country`, `status`, `license`,
+  `regulator` (repeatable), `priceMin`, `priceMax`, `sort` (`newest` · `price-asc` ·
+  `price-desc`), `page`.
+- Keyword search: every word must match the title, description, license type, regulator,
+  or country name. A price bound excludes "price on request" listings.
 - Empty state: "No assets match these filters" + *Reset filters*.
 
 **S4. Asset detail — `/assets/[slug]`**

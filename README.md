@@ -167,7 +167,12 @@ across two runs). Re-running the seed is also the "reset the demo" button.
 ### URL is the filter state
 
 Catalog filters live in the query string (shareable, survive refresh). `searchParams` is
-awaited and parsed by a Zod schema that drops invalid values instead of crashing.
+awaited and parsed by a Zod schema that drops invalid values instead of crashing. Client
+controls never hold their own copy of the filters: they compute the next URL and navigate
+inside a React transition (`useOptimistic` makes the click show at once, the results dim
+until the server answers). Category tab counts are facet counts — every filter except the
+category — and the same `GROUP BY` also yields the result total, so no separate `COUNT(*)`
+is needed; it runs in parallel with the page query.
 
 ### Stack
 

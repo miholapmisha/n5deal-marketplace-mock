@@ -32,3 +32,15 @@ export function countryFlag(code: string): string {
     .map((char) => String.fromCodePoint(REGIONAL_INDICATOR_A + char.charCodeAt(0) - 65))
     .join("");
 }
+
+const shortDate = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/** 2026-10-04T… → "4 Oct 2026". UTC, so server and browser agree on the day. */
+export function formatDate(date: Date): string {
+  return shortDate.format(date);
+}
