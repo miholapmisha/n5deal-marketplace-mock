@@ -228,15 +228,19 @@ These live in one module (`server/policies/`) as pure functions plus matching Pr
 
 ### 4.3 Moderation
 
-| Action | Effect | Reversible |
-|---|---|---|
-| Suspend user | `status = SUSPENDED`, reason stored, **all sessions deleted** (instant logout), their assets and profile disappear from public queries | Yes — Reinstate |
-| Remove user | `status = REMOVED`, sessions deleted, name/email anonymized, their assets → `REMOVED` | No |
-| Hide asset | `status = HIDDEN`, reason shown to the owner | Yes — Unhide |
-| Remove asset | `status = REMOVED` | No |
+| Action | From | Effect | Reversible |
+|---|---|---|---|
+| Suspend user | `ACTIVE` | `status = SUSPENDED`, reason stored, **all sessions deleted** (instant logout), their assets and profile disappear from public queries | Yes — Reinstate (`SUSPENDED` → `ACTIVE`) |
+| Remove user | `ACTIVE`, `SUSPENDED` | `status = REMOVED`, sessions deleted, name/email/company anonymized, buyer profile deleted, their assets → `REMOVED` | No |
+| Hide asset | `PUBLISHED` | `status = HIDDEN`, reason shown to the owner | Yes — Unhide (`HIDDEN` → `PUBLISHED`, original publish date kept) |
+| Remove asset | any but `REMOVED` | `status = REMOVED` | No |
 
-- A reason (min 10 chars) is required for every action; every action writes a `ModerationLog` row.
+- A reason (10–500 chars) is required for every action; every action writes a `ModerationLog` row
+  in the same transaction as the change.
 - Managers cannot act on Managers or on themselves.
+- Every change is conditional on the status the manager saw, so two managers acting at once
+  (or an owner unpublishing while a manager hides) never overwrite each other: the loser
+  gets "changed in the meantime".
 - A suspended user who logs in lands on `/suspended`, which shows the reason. A removed user
   gets the normal "invalid credentials" error.
 
@@ -394,16 +398,20 @@ Global header by role:
 - Stat cards: buyers, sellers, published assets, hidden assets, suspended users.
 - Assets table: search (title), filters (category, country, status, seller), columns
   (title, seller, category, price, status, published date), row actions: view, hide /
-  unhide, remove.
+  unhide, remove. Every status is listed; newest first, 20 rows per page.
+- Filters in the URL: `q`, `category`, `country`, `status`, `seller`, `page` (one value
+  each); invalid values are dropped.
 - Recent moderation log (last 20: when, manager, action, target, reason).
 
 **S11. Participants — `/manager/users`**
 - Tabs: Buyers / Sellers. Search (name, email, company), status filter (active /
-  suspended / removed).
+  suspended / removed). URL: `role` (`buyer` · `seller`), `q`, `status`, `page`; newest
+  accounts first, 20 rows per page.
 - Columns: name, company, email, status (+ reason), joined, assets or profile summary,
   conversation count.
-- Actions: *Suspend* (reason modal), *Reinstate*, *Remove* (confirm dialog with the typed
-  company name, reason modal).
+- Actions: *Suspend* (reason modal), *Reinstate* (reason modal), *Remove* (confirm dialog
+  with the typed company name — the person's name when there is no company — and a reason).
+  Managers are not listed: they cannot be moderated.
 
 ### States (not separate screens)
 

@@ -203,6 +203,24 @@ precomputed scores. The 20% price band is checked in integer arithmetic, not wit
 which the service has already loaded for the dropdown, so another seller's asset ids cannot be
 probed.
 
+### Moderation: conditional writes, logged in the same transaction
+
+Managers suspend, reinstate, and remove buyers and sellers (S11) and hide, unhide, and remove
+assets (S10, or from the asset page). Each action needs a reason and writes a `ModerationLog`
+row in the **same transaction** as the change, so the log can never disagree with the data.
+The allowed transitions (suspend only `ACTIVE`, unhide only `HIDDEN`, …) and "managers cannot
+act on managers or themselves" are pure functions in `server/policies/moderation-rules.ts`;
+the screens use them to choose which buttons to show, the service to refuse everything else.
+Every update is conditional on the status the service just read (`updateMany … where status =
+<seen>`), so two managers clicking at once — or a seller unpublishing while a manager hides —
+cannot overwrite each other; the loser gets "changed in the meantime". Suspension deletes the
+user's sessions in that transaction, which is the instant logout a JWT could not give; their
+listings vanish because visibility is derived at query time, and reinstating restores
+everything with no repair. Removal is permanent: name, email, and company are overwritten,
+the buyer profile is deleted, and every asset becomes `REMOVED` — but the row stays, so
+conversations and the log keep their foreign keys and show "Removed user". Removing an
+account asks for its company name to be typed, checked again in the service.
+
 ### Stack
 
 Next.js 16 (App Router, React Compiler) · TypeScript strict · Tailwind CSS v4 + shadcn/ui ·

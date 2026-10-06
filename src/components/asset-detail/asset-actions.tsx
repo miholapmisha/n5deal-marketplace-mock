@@ -2,9 +2,11 @@ import { LogIn, MessageSquare, MessagesSquare, Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { UnpublishButton } from "@/components/asset-detail/unpublish-button";
+import { AssetModerationButton } from "@/components/manager/moderation-buttons";
 import { Button } from "@/components/ui/button";
 import { conversationPath, newConversationPath } from "@/lib/messaging";
 import type { AssetDetailView } from "@/server/assets/asset.service";
+import { assetActionsFor } from "@/server/policies/moderation-rules";
 
 const buttonClass = "h-10 w-full rounded-full";
 
@@ -63,6 +65,21 @@ export function AssetActions({ view }: { view: AssetDetailView }) {
     case "SELLER":
       return <p className="text-center text-sm text-muted-foreground">Only buyers can contact sellers about an asset.</p>;
     case "MANAGER":
-      return <p className="text-center text-sm text-muted-foreground">You are viewing this asset as a platform manager.</p>;
+      return <ManagerActions view={view} />;
   }
+}
+
+/** Hide / Unhide / Remove with a reason (SPEC §4.3); a removed asset has none left. */
+function ManagerActions({ view: { asset } }: { view: AssetDetailView }) {
+  const actions = assetActionsFor(asset.status);
+  if (actions.length === 0) {
+    return <p className="text-center text-sm text-muted-foreground">This asset was removed. Removal cannot be undone.</p>;
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      {actions.map((action) => (
+        <AssetModerationButton key={action} assetId={asset.id} assetTitle={asset.title} action={action} block />
+      ))}
+    </div>
+  );
 }

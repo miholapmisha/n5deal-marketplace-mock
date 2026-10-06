@@ -1,4 +1,13 @@
-import type { AssetStatus, BusinessStatus, BuyerType, Category, Role, StatusPref, Timeline } from "@/generated/prisma/enums";
+import type {
+  AssetStatus,
+  BusinessStatus,
+  BuyerType,
+  Category,
+  Role,
+  StatusPref,
+  Timeline,
+  UserStatus,
+} from "@/generated/prisma/enums";
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   BANK: "Bank",
@@ -23,6 +32,12 @@ export const ROLE_LABELS: Record<Role, string> = {
   BUYER: "Buyer",
   SELLER: "Seller",
   MANAGER: "Manager",
+};
+
+export const USER_STATUS_LABELS: Record<UserStatus, string> = {
+  ACTIVE: "Active",
+  SUSPENDED: "Suspended",
+  REMOVED: "Removed",
 };
 
 export const ASSET_STATUS_LABELS: Record<AssetStatus, string> = {
