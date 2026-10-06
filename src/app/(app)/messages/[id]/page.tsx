@@ -13,7 +13,6 @@ export async function generateMetadata({ params }: PageProps<"/messages/[id]">):
   return { title: view ? `${view.counterpart.name} · Messages` : "Conversation not found" };
 }
 
-// S2 thread. Not a participant (or no such thread) → 404, the same answer for both.
 export default async function ConversationPage({ params }: PageProps<"/messages/[id]">) {
   await requireRole("BUYER", "SELLER");
   const view = await getConversationView((await params).id);

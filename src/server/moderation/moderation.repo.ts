@@ -13,9 +13,6 @@ import { publicAssetWhere } from "@/server/policies/asset-visibility";
 import { REMOVED_USER_NAME } from "@/server/policies/conversation-rules";
 import { containsWord, searchWords } from "@/server/text-search";
 
-// ─── Overview stats (S10) ────────────────────────────────────────────────────────────────
-
-/** Users per role and status: one GROUP BY instead of a COUNT per stat card. */
 export async function countUsersByRoleAndStatus(): Promise<{ role: Role; status: UserStatus; count: number }[]> {
   const groups = await db.user.groupBy({ by: ["role", "status"], _count: { _all: true } });
   return groups.map((group) => ({ role: group.role, status: group.status, count: group._count._all }));
@@ -28,8 +25,6 @@ export async function countAssetStats(): Promise<{ live: number; hidden: number 
   ]);
   return { live, hidden };
 }
-
-// ─── Assets table (S10) ──────────────────────────────────────────────────────────────────
 
 const managerAssetSelect = {
   id: true,
@@ -44,7 +39,6 @@ const managerAssetSelect = {
   seller: { select: { id: true, name: true, companyName: true, status: true } },
 } as const satisfies Prisma.AssetSelect;
 
-/** Every status (SPEC §4.1 manager view), narrowed by the filters. */
 function managerAssetWhere(filters: ManagerAssetFilters): Prisma.AssetWhereInput {
   const conditions: Prisma.AssetWhereInput[] = [];
   if (filters.q) {
@@ -57,7 +51,6 @@ function managerAssetWhere(filters: ManagerAssetFilters): Prisma.AssetWhereInput
   return { AND: conditions };
 }
 
-/** Newest listings first; `id` keeps pagination stable when two share a timestamp. */
 const MANAGER_ASSET_ORDER: Prisma.AssetOrderByWithRelationInput[] = [{ createdAt: "desc" }, { id: "asc" }];
 
 export async function findManagerAssets(filters: ManagerAssetFilters, skip: number, take: number) {
@@ -74,13 +67,11 @@ export async function countManagerAssets(filters: ManagerAssetFilters): Promise<
   return db.asset.count({ where: managerAssetWhere(filters) });
 }
 
-/** Countries that occur on any asset, for the country filter. */
 export async function findAssetCountries(): Promise<string[]> {
   const groups = await db.asset.groupBy({ by: ["country"] });
   return groups.map((group) => group.country);
 }
 
-/** Every seller account, for the seller filter. A few dozen rows in this prototype. */
 export async function findSellers() {
   return db.user.findMany({
     where: { role: "SELLER" },
@@ -88,8 +79,6 @@ export async function findSellers() {
     orderBy: [{ companyName: { sort: "asc", nulls: "last" } }, { name: "asc" }, { id: "asc" }],
   });
 }
-
-// ─── Moderation log (S10) ────────────────────────────────────────────────────────────────
 
 export async function findRecentModerationLogs(take: number) {
   return db.moderationLog.findMany({
@@ -107,8 +96,6 @@ export async function findRecentModerationLogs(take: number) {
   });
 }
 
-// ─── Participants (S11) ──────────────────────────────────────────────────────────────────
-
 const participantSelect = {
   id: true,
   name: true,
@@ -122,7 +109,6 @@ const participantSelect = {
   _count: { select: { buyerConversations: true, sellerConversations: true } },
 } as const satisfies Prisma.UserSelect;
 
-/** Every word must appear in the name, the email, or the company. */
 function participantSearchWhere(filters: ParticipantFilters): Prisma.UserWhereInput[] {
   const words = filters.q ? searchWords(filters.q, MAX_MANAGER_KEYWORDS) : [];
   const conditions: Prisma.UserWhereInput[] = words.map((word) => {
@@ -145,7 +131,6 @@ export async function findParticipants(filters: ParticipantFilters, skip: number
   });
 }
 
-/** Matches per tab (search and status applied, role ignored): the tab counts. */
 export async function countParticipantsByRole(
   filters: ParticipantFilters,
 ): Promise<{ role: ParticipantRole; count: number }[]> {
@@ -159,7 +144,6 @@ export async function countParticipantsByRole(
   );
 }
 
-/** Assets per seller and status, for the sellers shown on one page. */
 export async function countAssetsBySellerAndStatus(
   sellerIds: string[],
 ): Promise<{ sellerId: string; status: AssetStatus; count: number }[]> {
@@ -171,10 +155,6 @@ export async function countAssetsBySellerAndStatus(
   });
   return groups.map((group) => ({ sellerId: group.sellerId, status: group.status, count: group._count._all }));
 }
-
-// ─── Moderation writes ───────────────────────────────────────────────────────────────────
-// Each change is conditional on the status the service checked and is written in one
-// transaction with its log row: either both happen or neither does.
 
 export async function findUserForModeration(userId: string) {
   return db.user.findUnique({
@@ -199,10 +179,6 @@ interface UserChange {
   reason: string;
 }
 
-/**
- * Suspend or reinstate. Suspension deletes every session in the same transaction, so the
- * user is logged out on their very next request. False if the status changed meanwhile.
- */
 export async function changeUserStatus(change: UserChange): Promise<boolean> {
   const { managerId, userId, action, expected, next, reason } = change;
   return db.$transaction(async (tx) => {
@@ -217,10 +193,6 @@ export async function changeUserStatus(change: UserChange): Promise<boolean> {
   });
 }
 
-/**
- * SPEC §4.3 removal: logged out, personal data replaced, buyer profile deleted, every asset
- * removed. The row itself stays, so conversations and the log keep their foreign keys.
- */
 export async function removeUser(change: Omit<UserChange, "action" | "next">): Promise<boolean> {
   const { managerId, userId, expected, reason } = change;
   return db.$transaction(async (tx) => {
@@ -231,7 +203,6 @@ export async function removeUser(change: Omit<UserChange, "action" | "next">): P
         statusReason: reason,
         name: REMOVED_USER_NAME,
         companyName: null,
-        // Unique and undeliverable (RFC 2606 `.invalid`); the old address can register again.
         email: `removed-${userId}@removed.invalid`,
       },
     });
@@ -259,7 +230,6 @@ interface AssetChange {
   reason: string;
 }
 
-/** Hide, unhide, or remove an asset. False if its status changed meanwhile. */
 export async function changeAssetStatus(change: AssetChange): Promise<boolean> {
   const { managerId, assetId, action, expected, data, reason } = change;
   return db.$transaction(async (tx) => {

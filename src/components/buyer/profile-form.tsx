@@ -24,21 +24,17 @@ import { saveProfileAction } from "@/server/buyers/buyer.actions";
 
 interface ProfileFormProps {
   initialValues: BuyerProfileFormValues;
-  /** True until the first save: the form is the onboarding step and ends in the catalog. */
   onboarding: boolean;
-  /** COUNTRY_OPTIONS from the server (labels must match between SSR and hydration). */
   countries: readonly CountryOption[];
 }
 
 const initialState: ProfileFormState = {};
 
-/** S5. Controlled, so the completeness meter follows every edit and errors keep the input. */
 export function ProfileForm({ initialValues, onboarding, countries }: ProfileFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState(initialValues);
   const [state, formAction, isPending] = useActionState(saveProfileAction, initialState);
   const { errorsFor, markEdited } = useFormErrors<ProfileFormField>(state, formRef);
-  // "Saved" stays until the next edit, so it never describes values that changed since.
   const [dirtySinceSave, setDirtySinceSave] = useState(false);
   const [seenSave, setSeenSave] = useState(state.savedAt);
   if (state.savedAt !== seenSave) {

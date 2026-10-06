@@ -7,10 +7,8 @@ import { countryName, formatPrice } from "@/lib/format";
 import { BUSINESS_STATUS_LABELS, CATEGORY_LABELS } from "@/lib/labels";
 import { REGION_LABELS, regionOf } from "@/lib/regions";
 
-/** A chip's label plus what clicking its × does (passed straight to CatalogLink). */
 type Chip = { key: string; label: string } & Pick<ComponentProps<typeof CatalogLink>, "patch" | "remove">;
 
-/** Up to this many countries get a chip each; more collapse into one "N countries" chip. */
 const MAX_COUNTRY_CHIPS = 4;
 
 function priceLabel(min: number | null, max: number | null): string {
@@ -18,7 +16,6 @@ function priceLabel(min: number | null, max: number | null): string {
   return min !== null ? `From ${formatPrice(min)}` : `Up to ${formatPrice(max)}`;
 }
 
-/** An AI search for "the EU" selects 27 countries: one chip for the region, not 27. */
 function countryChips(countries: string[]): Chip[] {
   if (countries.length === 0) return [];
   const region = regionOf(countries);
@@ -69,10 +66,6 @@ function chipsFor(filters: CatalogFilters): Chip[] {
   ];
 }
 
-/**
- * Removable chips for every active filter, the category included: after an AI search this
- * row is the interpretation, read left to right (SPEC §5 S3, §7).
- */
 export function ActiveFilters({ filters }: { filters: CatalogFilters }) {
   const chips = chipsFor(filters);
   if (chips.length === 0) return null;

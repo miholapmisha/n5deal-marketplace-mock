@@ -20,14 +20,10 @@ import {
   searchQuerySchema,
 } from "@/lib/search-params";
 
-// URL → CatalogFilters (SPEC §6.6, §9). Kept apart from catalog-filters.ts so Zod stays out
-// of the client bundle.
-
 const MAX_TEXT_VALUE_LENGTH = 80;
 
 const categorySchema = enumValueSchema(Category);
 const businessStatusSchema = enumValueSchema(BusinessStatus);
-/** License types and regulators are free text in the data ("Banking (CRR)", "PRA / FCA"). */
 const textValueSchema = z.string().trim().min(1).max(MAX_TEXT_VALUE_LENGTH).regex(NO_CONTROL_CHARS);
 const sortSchema = z.enum(CATALOG_SORTS);
 const querySchema = searchQuerySchema(MAX_KEYWORDS);

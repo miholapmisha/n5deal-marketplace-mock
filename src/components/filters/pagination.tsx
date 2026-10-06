@@ -4,7 +4,6 @@ import { cn } from "cn";
 
 type PageItem = number | "gap";
 
-/** First, last, and the current page ±1, with gaps between: 1 … 4 5 6 … 12. */
 export function pageItems(current: number, count: number): PageItem[] {
   const pages = [...new Set([1, current - 1, current, current + 1, count])]
     .filter((page) => page >= 1 && page <= count)
@@ -12,12 +11,10 @@ export function pageItems(current: number, count: number): PageItem[] {
   return pages.flatMap((page, index): PageItem[] => {
     const previous = pages[index - 1];
     if (previous === undefined || page === previous + 1) return [page];
-    // A gap of exactly one page shows that page instead of "…".
     return page === previous + 2 ? [previous + 1, page] : ["gap", page];
   });
 }
 
-/** A link to one page of a filtered list; each list builds the href from its own filters. */
 export interface PageLinkProps {
   page: number;
   className: string;

@@ -10,14 +10,10 @@ import { chipList, optionalWholeNumber, recordId } from "@/server/form-fields";
 
 export const assetIdSchema = z.object({ assetId: recordId });
 
-/** Returned to `useActionState` by owner actions on an asset. */
 export interface AssetActionState {
   error?: string;
 }
 
-// ─── Asset form (S7) ─────────────────────────────────────────────────────────────────────
-
-/** Which asset (absent = a new one) and what to do with it. The values are parsed apart. */
 export const saveAssetMetaSchema = z.object({
   assetId: recordId.optional(),
   intent: z.enum(ASSET_INTENTS),
@@ -25,12 +21,10 @@ export const saveAssetMetaSchema = z.object({
 
 const PRICE_KEYS: ReadonlySet<PropertyKey | undefined> = new Set(["price", "priceOnRequest"]);
 
-/** The typed price, or null when it is missing, malformed, or zero. */
 function priceOf(text: string): number | null {
   return parsePriceInput(text) || null;
 }
 
-/** The form's raw strings → typed asset fields. Field errors are keyed like the form. */
 export const assetValuesSchema = z
   .object({
     title: z
@@ -56,7 +50,6 @@ export const assetValuesSchema = z
       maxLength: L.chipMax,
       maxItems: L.otherLicensesMax,
     }),
-    // Checked below, together with `priceOnRequest`: text left in the box is ignored then.
     price: z.string().trim().max(20, { error: "Price is too long." }),
     priceOnRequest: z.boolean(),
     benefits: chipList("benefit", { minLength: L.chipMin, maxLength: L.chipMax, maxItems: L.benefitsMax }),
@@ -71,7 +64,6 @@ export const assetValuesSchema = z
   .refine((values) => values.priceOnRequest || priceOf(values.price) !== null, {
     path: ["price"],
     error: "Enter the price in whole euros, e.g. 500000, or choose “Price on request”.",
-    // Runs even when other fields are invalid, so every error shows on the first submit.
     when: (payload) => !payload.issues.some((issue) => PRICE_KEYS.has(issue.path?.[0])),
   })
   .transform(({ price, priceOnRequest, ...values }) => ({

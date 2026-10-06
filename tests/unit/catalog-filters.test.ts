@@ -13,8 +13,6 @@ import {
 import { parseCatalogFilters } from "@/lib/parse-catalog-filters";
 import type { RawSearchParams } from "@/lib/search-params";
 
-// SPEC §6.6, §9 — the URL is the filter state. Invalid values are dropped, never fatal.
-
 const queryOf = (href: string): RawSearchParams => {
   const params = new URLSearchParams(href.split("?")[1] ?? "");
   const raw: Record<string, string[]> = {};

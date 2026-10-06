@@ -10,7 +10,6 @@ import { assetActionsFor } from "@/server/policies/moderation-rules";
 
 const buttonClass = "h-10 w-full rounded-full";
 
-/** The primary action for this viewer (SPEC §5 S4). */
 export function AssetActions({ view }: { view: AssetDetailView }) {
   const { asset, viewerRole, isOwner, conversationId } = view;
 
@@ -69,7 +68,6 @@ export function AssetActions({ view }: { view: AssetDetailView }) {
   }
 }
 
-/** Hide / Unhide / Remove with a reason (SPEC §4.3); a removed asset has none left. */
 function ManagerActions({ view: { asset } }: { view: AssetDetailView }) {
   const actions = assetActionsFor(asset.status);
   if (actions.length === 0) {

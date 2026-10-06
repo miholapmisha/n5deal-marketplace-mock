@@ -12,7 +12,6 @@ const STATUS_OPTIONS: SelectOption<UserStatus>[] = Object.values(UserStatus).map
   label: USER_STATUS_LABELS[value],
 }));
 
-/** S11: search (name, email, company) and status, in the URL. The tab is a link above. */
 export function ParticipantFilters({ filters }: { filters: Filters }) {
   const { filters: current, isPending, apply } = useFilterNavigation(filters, participantsHref);
 

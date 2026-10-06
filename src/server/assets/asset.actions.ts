@@ -16,18 +16,14 @@ import {
 } from "@/server/assets/asset.schema";
 import { type AssetChangeResult, publishAsset, saveAsset, unpublishAsset } from "@/server/assets/asset.service";
 
-// Entry points for asset forms: parse → service (ownership + status rules) → revalidate.
-
 const MY_ASSETS_PATH = "/seller/assets";
 
-/** Every page that shows this asset: the catalog, its detail page, and the owner's list. */
 function revalidateAsset(slug: string): void {
   revalidatePath(CATALOG_PATH);
   revalidatePath(`${CATALOG_PATH}/${slug}`);
   revalidatePath(MY_ASSETS_PATH);
 }
 
-/** Sent by the asset form (S7). Typed for the client; parsed as untrusted input here. */
 export interface SaveAssetPayload {
   assetId?: string;
   intent: AssetIntent;

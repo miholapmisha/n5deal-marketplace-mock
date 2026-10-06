@@ -1,7 +1,3 @@
-// Named groups of countries (SPEC §7). AI search picks a region by name and this table
-// expands it, so the 27 EU members come from code, not from a model's memory. The catalog
-// chips use the same table to show a whole region as one chip. Pure and client-safe.
-
 const EU = [
   "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE",
   "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE",
@@ -11,7 +7,6 @@ const EEA = [...EU, "IS", "LI", "NO"] as const;
 export const REGIONS = {
   EU,
   EEA,
-  /** What a buyer usually means by "Europe" in a licensing context: the EEA, the UK, and Switzerland. */
   EUROPE: [...EEA, "GB", "CH"],
   BALTICS: ["EE", "LV", "LT"],
   NORDICS: ["DK", "FI", "IS", "NO", "SE"],
@@ -35,12 +30,10 @@ export const REGION_LABELS: Record<Region, string> = {
   NORTH_AMERICA: "North America",
 };
 
-/** Every country in the given regions, each once, in table order. */
 export function regionCountries(regions: readonly Region[]): string[] {
   return [...new Set(regions.flatMap((region) => REGIONS[region]))];
 }
 
-/** The region made of exactly these countries (order ignored), or null. */
 export function regionOf(countries: readonly string[]): Region | null {
   const selected = new Set(countries);
   return (

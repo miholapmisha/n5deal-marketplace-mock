@@ -28,10 +28,6 @@ interface SubmitOption {
   primary: boolean;
 }
 
-/**
- * The buttons depend on where the asset stands. A hidden asset only gets "Save changes":
- * the service keeps it HIDDEN whatever the intent, since only a manager can unhide it.
- */
 function submitOptions(status: AssetStatus | null): SubmitOption[] {
   const save = <Save aria-hidden />;
   const publish = <Send aria-hidden />;
@@ -56,22 +52,14 @@ function isIntent(value: string | null | undefined): value is AssetIntent {
 }
 
 interface AssetFormProps {
-  /** Absent for a new asset. */
   assetId?: string;
-  /** Null for a new asset. */
   status: AssetStatus | null;
   initialValues: AssetFormValues;
-  /** COUNTRY_OPTIONS from the server (labels must match between SSR and hydration). */
   countries: readonly CountryOption[];
 }
 
 const initialState: AssetFormState = {};
 
-/**
- * S7. Controlled, so the live preview (the real catalog card) follows every keystroke and
- * nothing typed is lost on a validation error. Submitted as an object, not FormData: the
- * server action re-parses it with Zod either way.
- */
 export function AssetForm({ assetId, status, initialValues, countries }: AssetFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState(initialValues);
@@ -87,7 +75,6 @@ export function AssetForm({ assetId, status, initialValues, countries }: AssetFo
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isPending) return;
-    // Enter in a text field submits with the first button: the safe "draft" one.
     const submitter = (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value");
     const intent = isIntent(submitter) ? submitter : "draft";
     setPendingIntent(intent);

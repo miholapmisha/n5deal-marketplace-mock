@@ -2,7 +2,6 @@ import { cn } from "cn";
 
 const COMPLETE = 100;
 
-/** S5 "profile completeness meter": the share of filled fields, as a bar. */
 export function CompletenessMeter({ percent }: { percent: number }) {
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-card">

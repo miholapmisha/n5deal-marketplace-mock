@@ -8,7 +8,6 @@ interface NewConversationFormProps {
   defaultBody: string;
 }
 
-/** Buyer's first message about an asset. The action redirects to the new thread. */
 export function NewConversationForm({ assetId, defaultBody }: NewConversationFormProps) {
   async function send(body: string): Promise<string | null> {
     const result = await startConversationAction({ assetId, body });

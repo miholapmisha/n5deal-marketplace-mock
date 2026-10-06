@@ -37,7 +37,6 @@ const SESSION_EXPIRED = "Your session has expired. Log in again.";
 const CONVERSATION_NOT_FOUND = "Conversation not found.";
 const ASSET_UNAVAILABLE = "This asset is no longer available: the seller unpublished it, or a manager hid it.";
 
-/** Bounds for one render. Older items stay in the database (cursor pagination: SPEC §13). */
 const CONVERSATION_LIST_LIMIT = 100;
 const THREAD_MESSAGE_LIMIT = 200;
 
@@ -45,25 +44,20 @@ export type MessagingResult<T extends object = object> = ({ ok: true } & T) | { 
 
 type Participant = CurrentUser & { role: ConversationSide };
 
-/** Buyers and sellers have conversations; managers and visitors do not. */
 function isParticipant(user: CurrentUser | null): user is Participant {
   return user?.role === "BUYER" || user?.role === "SELLER";
 }
-
-// ─── Conversation list + header count (S2) ───────────────────────────────────────────────
 
 export interface ConversationListItem {
   id: string;
   counterpartName: string;
   assetTitle: string;
   assetCountry: string;
-  /** The newest message. Threads are created with their first message, so it always exists. */
   preview: { body: string; mine: boolean } | null;
   lastMessageAt: Date;
   unread: boolean;
 }
 
-/** The viewer's conversations. Memoized per request: the layout and the page both ask. */
 export const listConversations = cache(async (): Promise<ConversationListItem[]> => {
   const user = await getCurrentUser();
   if (!isParticipant(user)) return [];
@@ -84,38 +78,28 @@ export const listConversations = cache(async (): Promise<ConversationListItem[]>
   });
 });
 
-/** The header badge: conversations with something the viewer has not read. */
 export async function getUnreadConversationCount(): Promise<number> {
   const user = await getCurrentUser();
   return isParticipant(user) ? countUnreadConversations(user.id) : 0;
 }
 
-// ─── One thread (S2) ─────────────────────────────────────────────────────────────────────
-
 export interface ConversationView {
   id: string;
   counterpart: {
     name: string;
-    /** The person behind the company name, when both are known. */
     personName: string | null;
     side: ConversationSide;
-    /** S9, for a seller looking at a buyer whose profile is listed. */
     profileHref: string | null;
   };
   asset: {
     title: string;
     country: string;
     priceEur: number | null;
-    /** Null when the viewer may no longer open the asset page. */
     href: string | null;
-    /** Why the asset is not in the catalog, or null when it is. */
     notice: string | null;
   };
-  /** Oldest first. */
   messages: ThreadMessage[];
-  /** More messages exist than the thread shows. */
   hasEarlier: boolean;
-  /** Set when the viewer cannot reply (SPEC §4.2). */
   blockedReason: string | null;
   unread: boolean;
   lastMessageAt: Date;
@@ -128,7 +112,6 @@ const OWNER_ASSET_NOTICE: Record<AssetStatus, string | null> = {
   REMOVED: "Removed by a platform manager",
 };
 
-/** The thread, or null (→ 404) when it does not exist or the viewer is not part of it. */
 export const getConversationView = cache(async (conversationId: string): Promise<ConversationView | null> => {
   if (!recordId.safeParse(conversationId).success) return null;
   const user = await getCurrentUser();
@@ -140,7 +123,6 @@ export const getConversationView = cache(async (conversationId: string): Promise
 
   const counterpartSide = otherSide(side);
   const counterpart = counterpartSide === "BUYER" ? row.buyer : row.seller;
-  // The thread's seller is the asset's seller: assets never change owner.
   const assetFacts = { ...row.asset, seller: { status: row.seller.status } };
   const isPublic = isPubliclyVisible(assetFacts);
 
@@ -175,16 +157,12 @@ export const getConversationView = cache(async (conversationId: string): Promise
   };
 });
 
-// ─── Writes ──────────────────────────────────────────────────────────────────────────────
-
-/** A reply. Refused when the counterpart is no longer active. */
 export async function sendMessage(conversationId: string, body: string): Promise<MessagingResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: SESSION_EXPIRED };
 
   const conversation = await findConversationParticipants(conversationId);
   const side = conversation ? conversationSide(conversation, user.id) : null;
-  // Same answer for "missing" and "not yours", so conversation IDs cannot be probed.
   if (!conversation || !side) return { ok: false, error: CONVERSATION_NOT_FOUND };
 
   const counterpartSide = otherSide(side);
@@ -196,7 +174,6 @@ export async function sendMessage(conversationId: string, body: string): Promise
   return { ok: true };
 }
 
-/** Buyer → seller from an asset the buyer can see (S4). Reuses an existing thread. */
 export async function startConversation(
   assetId: string,
   body: string,
@@ -218,7 +195,6 @@ export async function startConversation(
   return { ok: true, conversationId };
 }
 
-/** Seller → buyer about one of the seller's own published assets (S9). Reuses a thread. */
 export async function contactBuyer(
   buyerId: string,
   assetId: string,
@@ -245,10 +221,6 @@ export async function contactBuyer(
   return { ok: true, conversationId };
 }
 
-/**
- * Marks the thread read up to `seenAt` (the newest message the viewer was shown), capped at
- * the newest message that exists. True if anything changed.
- */
 export async function markConversationRead(conversationId: string, seenAt: Date): Promise<boolean> {
   const user = await getCurrentUser();
   if (!user) return false;
@@ -261,31 +233,20 @@ export async function markConversationRead(conversationId: string, seenAt: Date)
   return markReadUpTo(conversation.id, { id: user.id, side }, upTo);
 }
 
-// ─── Contact a buyer (S9) ────────────────────────────────────────────────────────────────
-
 export interface ContactAssetOption {
   id: string;
   slug: string;
   title: string;
-  /** How well this asset fits the buyer's profile, 0–100 (SPEC §4.4). */
   match: number;
   signals: MatchSignals;
 }
 
 export interface ContactBuyerOptions {
-  /** The seller's published assets, best fit for this buyer first. */
   assets: ContactAssetOption[];
-  /** Existing threads with this buyer, any asset status. */
   threads: { id: string; assetId: string; assetTitle: string }[];
 }
 
-/**
- * What the "Contact buyer" form offers this seller, scored against the buyer's profile (the
- * seller → buyer direction of the match score). Null for anyone who is not a seller, and for
- * a buyer who is not listed: the profile is loaded here, never taken from the caller.
- */
 export async function getContactBuyerOptions(buyerId: string): Promise<ContactBuyerOptions | null> {
-  // getBuyerDetail is memoized per request: on S9 this reuses the page's own lookup.
   const [user, buyer] = await Promise.all([getCurrentUser(), getBuyerDetail(buyerId)]);
   if (user?.role !== "SELLER" || !buyer) return null;
 

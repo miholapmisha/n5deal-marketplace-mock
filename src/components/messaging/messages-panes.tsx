@@ -9,10 +9,6 @@ interface MessagesPanesProps {
   children: ReactNode;
 }
 
-/**
- * S2 frame: list and thread side by side on desktop. On phones only one shows: the list at
- * /messages, the thread (or the new-conversation composer) below it.
- */
 export function MessagesPanes({ list, children }: MessagesPanesProps) {
   const threadOpen = useSelectedLayoutSegment() !== null;
 

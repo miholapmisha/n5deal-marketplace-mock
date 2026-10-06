@@ -57,7 +57,6 @@
 }
 
 :root {
-  /* Sampled from n5deal.com/all-listing (devtools, 2026-10-06). */
   --background: #f6f8fb;
   --foreground: #011230;
   --card: #ffffff;
@@ -91,7 +90,6 @@
   --sidebar-border: #e7f3ff;
   --sidebar-ring: #383bfe;
 
-  /* N5Deal-specific tokens. */
   --success: #059669;
   --success-foreground: #ffffff;
   --warning: #b45309;

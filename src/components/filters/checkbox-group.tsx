@@ -4,7 +4,6 @@ import { type ReactNode, useId, useState } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 
-/** Above this many options a group gets its own search box. */
 const SEARCHABLE_FROM = 8;
 
 export interface FilterOption<T extends string> {
@@ -20,7 +19,6 @@ interface CheckboxGroupProps<T extends string> {
   renderLabel?: (option: FilterOption<T>) => ReactNode;
 }
 
-/** A filter-panel section of checkboxes; long lists get a search box. */
 export function CheckboxGroup<T extends string>({
   legend,
   options,
@@ -32,7 +30,6 @@ export function CheckboxGroup<T extends string>({
   const [query, setQuery] = useState("");
   const searchable = options.length > SEARCHABLE_FROM;
   const needle = query.trim().toLowerCase();
-  // Checked options stay visible while searching, so a selection never "disappears".
   const visible = needle
     ? options.filter((option) => selected.includes(option.value) || option.label.toLowerCase().includes(needle))
     : options;

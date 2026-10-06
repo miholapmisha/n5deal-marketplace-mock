@@ -19,7 +19,6 @@ interface FilterPanelProps {
   options: CatalogFacetOptions;
 }
 
-/** Side panel on desktop, drawer content on mobile. Every change applies immediately. */
 export function FilterPanel({ options }: FilterPanelProps) {
   const { filters, apply } = useCatalogNavigation();
 

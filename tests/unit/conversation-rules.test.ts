@@ -9,8 +9,6 @@ import {
   sendBlockedReason,
 } from "@/server/policies/conversation-rules";
 
-// SPEC §4.2 — sides, unread state, and when a thread becomes read-only.
-
 const conversation = { buyerId: "buyer_1", sellerId: "seller_1" };
 
 describe("conversationSide", () => {

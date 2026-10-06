@@ -17,32 +17,22 @@ import {
 } from "@/lib/ai-search";
 import { catalogHref, DEFAULT_CATALOG_FILTERS } from "@/lib/catalog-filters";
 
-/** What the last AI search did, shown while the filters it applied are still in place. */
 interface Outcome {
   result: AiSearchResult;
   appliedKey: string;
 }
 
-/** Same filters → same key, whatever the sort or page. */
 function filterKey(filters: SearchFilters): string {
   return catalogHref({ ...DEFAULT_CATALOG_FILTERS, ...filters });
 }
 
-/** Every filter is replaced: by the interpretation, or by the text as a keyword search. */
 function filtersFor(result: AiSearchResult, query: string): SearchFilters {
   return result.mode === "ai" ? result.filters : { ...searchFiltersOf(DEFAULT_CATALOG_FILTERS), q: query };
 }
 
-/**
- * Keyword search over title, description, license, regulator, and country name — or, with
- * the switch on, AI search (SPEC §7): the sentence is turned into filters on the server and
- * the result lands in the URL like any other filter change.
- */
 export function CatalogSearch() {
   const { filters, apply } = useCatalogNavigation();
   const [aiMode, setAiMode] = useState(false);
-  // The sentence behind the current AI search. The box keeps showing it rather than the
-  // keywords the model extracted into the URL.
   const [aiQuery, setAiQuery] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [isInterpreting, startInterpreting] = useTransition();
@@ -62,7 +52,6 @@ export function CatalogSearch() {
 
   function handleModeChange(enabled: boolean) {
     setAiMode(enabled);
-    // Start from the keyword search, so switching on does not clear the box.
     setAiQuery(filters.q);
     setOutcome(null);
   }
@@ -82,13 +71,11 @@ export function CatalogSearch() {
         label: "Search assets",
       };
 
-  // Once the filters change by hand (a chip, a tab), the notice no longer describes them.
   const shown = outcome?.appliedKey === filterKey(searchFiltersOf(filters)) ? outcome.result : null;
 
   return (
     <div className="flex flex-col gap-2">
       {isInterpreting && <span hidden data-pending="" />}
-      {/* One element for both modes, so text typed before flipping the switch stays. */}
       <SearchBox {...box} pending={isInterpreting} />
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1">
         <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-medium">

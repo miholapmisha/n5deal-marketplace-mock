@@ -23,7 +23,6 @@ export async function findBuyerProfile(userId: string) {
   return db.buyerProfile.findUnique({ where: { userId }, select: profileSelect });
 }
 
-/** S9: a buyer with their profile, plus what visibility needs (role, status, isVisible). */
 export async function findBuyerDetail(userId: string) {
   return db.user.findUnique({
     where: { id: userId },
@@ -39,10 +38,6 @@ export async function findBuyerDetail(userId: string) {
   });
 }
 
-/**
- * Creates or replaces the profile and stores the company on the user, atomically. Returns
- * whether the profile existed before (the first save ends onboarding).
- */
 export async function saveBuyerProfile(userId: string, input: BuyerProfileInput): Promise<{ existed: boolean }> {
   const { companyName, ticketMin, ticketMax, ...rest } = input;
   const profile = { ...rest, ticketMinEur: ticketMin, ticketMaxEur: ticketMax };
@@ -55,9 +50,6 @@ export async function saveBuyerProfile(userId: string, input: BuyerProfileInput)
   });
 }
 
-// ─── Buyer directory (S8) ────────────────────────────────────────────────────────────────
-
-/** What `matchScore` reads from a profile, plus the ranking tie-breaker. */
 const matchProfileSelect = {
   categories: true,
   countries: true,
@@ -74,7 +66,6 @@ const buyerCardSelect = {
   buyerProfile: { select: { ...matchProfileSelect, buyerType: true, timeline: true, thesis: true } },
 } as const satisfies Prisma.UserSelect;
 
-/** Every word must appear in the name, the company, or the thesis. */
 function keywordWhere(q: string): Prisma.UserWhereInput[] {
   return searchWords(q, MAX_BUYER_KEYWORDS).map((word) => {
     const contains = containsWord(word);
@@ -82,11 +73,6 @@ function keywordWhere(q: string): Prisma.UserWhereInput[] {
   });
 }
 
-/**
- * Listed buyers AND every active filter (SPEC §5 S8). An empty category or country list
- * means "any", so such a buyer matches every category or country filter. Ticket ranges
- * overlap the filter range; a missing bound on either side is open.
- */
 function directoryWhere(filters: BuyerFilters): Prisma.UserWhereInput {
   const profile: Prisma.BuyerProfileWhereInput[] = [];
   if (filters.categories.length > 0) {
@@ -109,7 +95,6 @@ function directoryWhere(filters: BuyerFilters): Prisma.UserWhereInput {
   return { AND: conditions };
 }
 
-/** Recently updated profiles first: the buyers most likely to be active. */
 const DIRECTORY_ORDER: Prisma.UserOrderByWithRelationInput[] = [{ buyerProfile: { updatedAt: "desc" } }, { id: "asc" }];
 
 export async function findDirectoryBuyers(filters: BuyerFilters, skip: number, take: number) {
@@ -120,7 +105,6 @@ export async function countDirectoryBuyers(filters: BuyerFilters): Promise<numbe
   return db.user.count({ where: directoryWhere(filters) });
 }
 
-/** The scoring fields of every match (recently updated first, capped), for "Rank for". */
 export async function findDirectoryMatchFacts(filters: BuyerFilters, take: number) {
   return db.user.findMany({
     where: directoryWhere(filters),
@@ -130,15 +114,10 @@ export async function findDirectoryMatchFacts(filters: BuyerFilters, take: numbe
   });
 }
 
-/** Card rows for the given ids, still listed. The caller restores the ranking order. */
 export async function findDirectoryBuyersByIds(ids: string[]) {
   return db.user.findMany({ where: { AND: [listedBuyerWhere, { id: { in: ids } }] }, select: buyerCardSelect });
 }
 
-/**
- * Countries that listed buyers target, for the country filter. Array columns have no
- * Prisma "distinct element" query; the profiles' lists are small, so they are merged here.
- */
 export async function findDirectoryCountries(): Promise<string[]> {
   const rows = await db.buyerProfile.findMany({ where: { user: listedBuyerWhere }, select: { countries: true } });
   return [...new Set(rows.flatMap((row) => row.countries))];

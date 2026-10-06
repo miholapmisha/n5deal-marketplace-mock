@@ -31,7 +31,6 @@ interface AssetTableFiltersProps {
   sellers: SelectOption<string>[];
 }
 
-/** S10: title search plus one-value filters, all in the URL. Changes apply immediately. */
 export function AssetTableFilters({ filters, countries, sellers }: AssetTableFiltersProps) {
   const { filters: current, isPending, apply } = useFilterNavigation(filters, managerAssetsHref);
 

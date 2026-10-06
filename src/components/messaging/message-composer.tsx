@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MESSAGE_MAX_LENGTH } from "@/lib/messaging";
 
-/** Show the character counter once the message is this close to the limit. */
 const COUNTER_FROM = MESSAGE_MAX_LENGTH - 300;
 
 interface MessageComposerProps {
@@ -17,21 +16,11 @@ interface MessageComposerProps {
   placeholder?: string;
   submitLabel?: string;
   disabled?: boolean;
-  /** A taller box, for a first message written in a form rather than in a thread. */
   roomy?: boolean;
-  /** Empty the box as soon as the message is handed over: the thread shows it optimistically. */
   clearOnSend?: boolean;
-  /**
-   * Sends the trimmed message. Resolves to an error to show, or null once sent. A redirect
-   * from the server action rejects instead; Next.js handles that and navigates.
-   */
   onSend: (body: string) => Promise<string | null>;
 }
 
-/**
- * Controlled textarea + send button. Not `<form action>`: React resets such a form after the
- * action, which would wipe the text when the server refuses the message.
- */
 export function MessageComposer({
   label,
   defaultBody = "",
@@ -52,7 +41,6 @@ export function MessageComposer({
   function send() {
     if (!canSend) return;
     setError(null);
-    // Outside the transition, so the box empties now rather than when the action finishes.
     if (clearOnSend) setBody("");
     startTransition(async () => {
       const failure = await onSend(trimmed);
@@ -61,7 +49,6 @@ export function MessageComposer({
         return;
       }
       setError(failure);
-      // Give the text back, unless a new message was started meanwhile.
       if (clearOnSend) setBody((current) => (current.trim() === "" ? trimmed : current));
     });
   }

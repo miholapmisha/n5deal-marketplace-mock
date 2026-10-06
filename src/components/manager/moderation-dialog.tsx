@@ -25,26 +25,19 @@ type ModerationServerAction = (state: ModerationFormState, formData: FormData) =
 
 interface ModerationFormProps {
   action: ModerationServerAction;
-  /** Hidden inputs: which record and which action. */
   fields: Record<string, string>;
   submitLabel: string;
   pendingLabel: string;
   destructive?: boolean;
-  /** Removal only: the text the manager must type before the submit button enables. */
   confirmText?: string;
 }
 
 interface ModerationDialogProps extends ModerationFormProps {
-  /** The button that opens the dialog. */
   trigger: ReactNode;
   title: string;
   description: ReactNode;
 }
 
-/**
- * SPEC §4.3: every moderation action asks for a reason in a modal. The form lives inside the
- * dialog content, which unmounts on close, so every opening starts with a fresh form.
- */
 export function ModerationDialog({ trigger, title, description, ...formProps }: ModerationDialogProps) {
   const [open, setOpen] = useState(false);
 
@@ -74,7 +67,6 @@ function ModerationForm({
   onDone,
 }: ModerationFormProps & { onDone: () => void }) {
   const id = useId();
-  // Controlled, so the typed text survives a failed submit (React resets uncontrolled forms).
   const [reason, setReason] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [state, formAction] = useActionState(async (previous: ModerationFormState, formData: FormData) => {

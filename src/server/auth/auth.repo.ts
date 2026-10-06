@@ -3,7 +3,6 @@ import "server-only";
 import type { Role } from "@/generated/prisma/client";
 import { db } from "@/server/db";
 
-// What the rest of the app may know about the logged-in user. Never the password hash.
 export const currentUserSelect = {
   id: true,
   name: true,
@@ -36,7 +35,6 @@ export async function insertSession(data: { id: string; userId: string; expiresA
   await db.session.create({ data, select: { id: true } });
 }
 
-/** A live session (not expired) with its user, whatever the user's status. */
 export async function findLiveSession(id: string, now: Date) {
   return db.session.findUnique({
     where: { id, expiresAt: { gt: now } },
@@ -45,11 +43,9 @@ export async function findLiveSession(id: string, now: Date) {
 }
 
 export async function deleteSession(id: string): Promise<void> {
-  // deleteMany: no error when the row is already gone (double logout, expired cleanup).
   await db.session.deleteMany({ where: { id } });
 }
 
-/** Deletes a user's expired sessions and all but the newest `keep` live ones. */
 export async function pruneSessions(userId: string, now: Date, keep: number): Promise<void> {
   const surplus = await db.session.findMany({
     where: { userId, expiresAt: { gt: now } },

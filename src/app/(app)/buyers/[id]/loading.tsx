@@ -1,4 +1,3 @@
-/** S9 skeleton. Without it, the directory's skeleton (buyers/loading.tsx) would show here. */
 export default function BuyerDetailLoading() {
   return (
     <div className="flex animate-pulse flex-col gap-6" aria-busy="true" aria-label="Loading buyer">

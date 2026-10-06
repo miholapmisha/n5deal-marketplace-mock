@@ -11,12 +11,10 @@ import type { ConversationView } from "@/server/messaging/message.service";
 interface ThreadHeaderProps {
   title: string;
   subtitle: string;
-  /** S9 link, for a seller looking at a buyer. */
   profileHref?: string | null;
   asset: ConversationView["asset"];
 }
 
-/** Counterpart on top, then the asset the conversation is about (SPEC §5 S2). */
 export function ThreadHeader({ title, subtitle, profileHref, asset }: ThreadHeaderProps) {
   return (
     <header className="flex flex-col gap-3 border-b border-border px-4 py-3">

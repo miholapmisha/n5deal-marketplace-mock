@@ -16,7 +16,6 @@ interface ParticipantTableProps {
   participants: ParticipantRow[];
 }
 
-/** S11: one tab's accounts with their status, activity, and the actions their status allows. */
 export function ParticipantTable({ role, participants }: ParticipantTableProps) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-card">

@@ -10,7 +10,6 @@ type SubmitButtonProps = Omit<ComponentProps<typeof Button>, "type"> & {
   pendingLabel?: string;
 };
 
-/** Disabled while its form is submitting, so a double click cannot submit twice (SPEC §9). */
 export function SubmitButton({ children, pendingLabel, disabled, ...props }: SubmitButtonProps) {
   const { pending } = useFormStatus();
   return (

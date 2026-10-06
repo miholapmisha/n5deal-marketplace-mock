@@ -21,13 +21,10 @@ export async function generateMetadata({ params }: PageProps<"/assets/[slug]">):
   return {
     title: view.asset.title,
     description: view.asset.description.slice(0, META_DESCRIPTION_LENGTH),
-    // Drafts and hidden assets are reachable by their owner and managers only.
     robots: view.isPublic ? undefined : { index: false, follow: false },
   };
 }
 
-// S4. One query decides visibility for this viewer; anything they may not see is a 404, so
-// the page never reveals that a hidden or draft asset exists.
 export default async function AssetDetailPage({ params }: PageProps<"/assets/[slug]">) {
   const view = await getAssetDetail((await params).slug);
   if (!view) notFound();

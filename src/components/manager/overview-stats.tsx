@@ -14,7 +14,6 @@ interface StatCard {
   value: number;
   hint: string;
   icon: LucideIcon;
-  /** The list behind the number. */
   href: string;
 }
 
@@ -58,7 +57,6 @@ function cardsFor(stats: Stats): StatCard[] {
   ];
 }
 
-/** S10 stat cards. Each one links to the list it counts. */
 export function OverviewStats({ stats }: { stats: Stats }) {
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">

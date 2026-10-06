@@ -7,11 +7,6 @@ interface FieldErrorState<F extends string> {
   fieldErrors?: Partial<Record<F, string[]>>;
 }
 
-/**
- * Server-side Zod errors for a controlled form: a field's error disappears as soon as the
- * person edits it, and after each submit focus moves to the first invalid control (or the
- * form-level alert), so keyboard and screen-reader users land on the problem.
- */
 export function useFormErrors<F extends string>(state: FieldErrorState<F>, formRef: RefObject<HTMLFormElement | null>) {
   const [seenState, setSeenState] = useState(state);
   const [edited, setEdited] = useState<ReadonlySet<F>>(new Set());

@@ -12,7 +12,6 @@ function createPrismaClient(): PrismaClient {
   return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 }
 
-// Hot reload re-evaluates modules in dev; keep one client (and one pool) per process.
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const db = globalForPrisma.prisma ?? createPrismaClient();

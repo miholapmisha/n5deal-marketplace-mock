@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   title: "My assets",
 };
 
-// S6. The seller's home: every own asset except removed ones, recently edited first.
 export default async function MyAssetsPage() {
   await requireRole("SELLER");
   const assets = await listOwnAssets();

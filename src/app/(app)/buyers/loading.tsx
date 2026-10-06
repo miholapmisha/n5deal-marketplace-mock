@@ -1,6 +1,5 @@
 const CARD_PLACEHOLDERS = 6;
 
-/** S8 skeleton: shown on first entry to the directory (filter changes keep the old results). */
 export default function BuyersLoading() {
   return (
     <div className="flex animate-pulse flex-col gap-6" aria-busy="true" aria-label="Loading buyers">

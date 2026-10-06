@@ -16,9 +16,6 @@ import {
   searchQuerySchema,
 } from "@/lib/search-params";
 
-// URL → manager filters (SPEC §5 S10, S11). Same contract as the catalog: every value is
-// validated on its own and invalid ones are dropped, never an error page.
-
 const querySchema = searchQuerySchema(MAX_MANAGER_KEYWORDS);
 const roleSchema = enumValueSchema({ BUYER: "BUYER", SELLER: "SELLER" } as const);
 

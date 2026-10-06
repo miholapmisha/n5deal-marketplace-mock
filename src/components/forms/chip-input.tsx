@@ -16,7 +16,6 @@ interface ChipInputProps {
   "aria-describedby"?: string;
 }
 
-/** Free-text tags: Enter or comma adds one, Backspace in an empty box removes the last. */
 export function ChipInput({ id, values, onChange, maxItems, maxLength, placeholder, ...aria }: ChipInputProps) {
   const [draft, setDraft] = useState("");
   const full = values.length >= maxItems;

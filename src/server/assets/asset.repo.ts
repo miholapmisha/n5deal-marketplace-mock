@@ -8,7 +8,6 @@ import { isUniqueViolation } from "@/server/prisma-errors";
 import { publicAssetWhere } from "@/server/policies/asset-visibility";
 import { containsWord, searchWords } from "@/server/text-search";
 
-// Fields the catalog card needs. Seller identity is deliberately excluded (SPEC §1.4).
 export const assetCardSelect = {
   id: true,
   slug: true,
@@ -35,7 +34,6 @@ const assetDetailSelect = {
   seller: { select: { status: true, name: true, companyName: true } },
 } as const satisfies Prisma.AssetSelect;
 
-/** Every word must appear in at least one text field (or name the asset's country). */
 function keywordWhere(q: string): Prisma.AssetWhereInput[] {
   return searchWords(q, MAX_KEYWORDS).map((word) => {
     const contains = containsWord(word);
@@ -52,10 +50,6 @@ function keywordWhere(q: string): Prisma.AssetWhereInput[] {
   });
 }
 
-/**
- * Public visibility AND every active filter. `ignoreCategories` builds the base for the
- * category facet counts, which respect every filter except the category itself.
- */
 function catalogWhere(filters: CatalogFilters, { ignoreCategories = false } = {}): Prisma.AssetWhereInput {
   const conditions: Prisma.AssetWhereInput[] = [publicAssetWhere];
   if (filters.q) conditions.push(...keywordWhere(filters.q));
@@ -68,7 +62,6 @@ function catalogWhere(filters: CatalogFilters, { ignoreCategories = false } = {}
   }
   if (filters.licenseTypes.length > 0) conditions.push({ licenseType: { in: filters.licenseTypes } });
   if (filters.regulators.length > 0) conditions.push({ regulator: { in: filters.regulators } });
-  // A price bound excludes "price on request" listings: SQL comparisons with NULL are false.
   if (filters.priceMin !== null) conditions.push({ priceEur: { gte: filters.priceMin } });
   if (filters.priceMax !== null) conditions.push({ priceEur: { lte: filters.priceMax } });
   return { AND: conditions };
@@ -76,10 +69,6 @@ function catalogWhere(filters: CatalogFilters, { ignoreCategories = false } = {}
 
 const NEWEST_FIRST: Prisma.AssetOrderByWithRelationInput[] = [{ publishedAt: "desc" }, { id: "asc" }];
 
-/**
- * `id` breaks ties, so pagination is stable when two rows share a price or a date. Best match
- * is ranked in the service (`findCatalogMatchFacts`); here it falls back to newest.
- */
 const CATALOG_ORDER: Record<CatalogSort, Prisma.AssetOrderByWithRelationInput[]> = {
   newest: NEWEST_FIRST,
   "price-asc": [{ priceEur: { sort: "asc", nulls: "last" } }, ...NEWEST_FIRST],
@@ -97,7 +86,6 @@ export async function findCatalogAssets(filters: CatalogFilters, skip: number, t
   });
 }
 
-/** What `matchScore` reads, plus the tie-breaker, for every match (newest first, capped). */
 export async function findCatalogMatchFacts(filters: CatalogFilters, take: number) {
   return db.asset.findMany({
     where: catalogWhere(filters),
@@ -107,12 +95,10 @@ export async function findCatalogMatchFacts(filters: CatalogFilters, take: numbe
   });
 }
 
-/** Card rows for the given ids, still publicly visible. The caller restores the order. */
 export async function findCatalogAssetsByIds(ids: string[]) {
   return db.asset.findMany({ where: { AND: [publicAssetWhere, { id: { in: ids } }] }, select: assetCardSelect });
 }
 
-/** Matching assets per category, ignoring the category filter (facet counts, SPEC §5 S3). */
 export async function countCatalogAssetsByCategory(
   filters: CatalogFilters,
 ): Promise<{ category: Category; count: number }[]> {
@@ -129,12 +115,10 @@ async function distinctPublicValues(field: "country" | "licenseType" | "regulato
   return groups.map((group) => group[field]).filter((value): value is string => value !== null);
 }
 
-/** License types on at least one public asset: the values AI search may choose from. */
 export function findPublicLicenseTypes(): Promise<string[]> {
   return distinctPublicValues("licenseType");
 }
 
-/** Option lists for the filter panel: values that occur on at least one public asset. */
 export async function findCatalogFacetValues() {
   const [countries, licenseTypes, regulators] = await Promise.all([
     distinctPublicValues("country"),
@@ -148,10 +132,6 @@ export async function findAssetDetailBySlug(slug: string) {
   return db.asset.findUnique({ where: { slug }, select: assetDetailSelect });
 }
 
-/**
- * The seller's published assets, newest first, with what `matchScore` reads: the assets they
- * may contact a buyer about (SPEC §4.2) and rank buyers for (S8).
- */
 export async function findPublishedAssetsOf(sellerId: string) {
   return db.asset.findMany({
     where: { sellerId, status: "PUBLISHED" },
@@ -177,8 +157,6 @@ export async function findConversationId(assetId: string, buyerId: string): Prom
   return conversation?.id ?? null;
 }
 
-// ─── Owner (S6, S7) ──────────────────────────────────────────────────────────────────────
-
 export async function findOwnAssets(sellerId: string) {
   return db.asset.findMany({
     where: { sellerId, status: { not: "REMOVED" } },
@@ -197,7 +175,6 @@ export async function findOwnAssets(sellerId: string) {
   });
 }
 
-/** Every field the asset form edits, plus what the service needs to authorize the edit. */
 export async function findAssetForEdit(assetId: string) {
   return db.asset.findUnique({
     where: { id: assetId },
@@ -217,7 +194,6 @@ export type AssetWriteData = Omit<Prisma.AssetUncheckedCreateInput, "id" | "slug
 
 const SLUG_ATTEMPTS = 3;
 
-/** Inserts with a fresh slug from `nextSlug`, retrying if one is already taken. */
 export async function insertAsset(data: AssetWriteData, nextSlug: () => string): Promise<{ slug: string }> {
   for (let attempt = 1; ; attempt++) {
     try {
@@ -228,10 +204,6 @@ export async function insertAsset(data: AssetWriteData, nextSlug: () => string):
   }
 }
 
-/**
- * Writes the owner's edit only if the asset still has the status the service checked, so a
- * manager hiding it at the same moment is never overwritten. False if nothing matched.
- */
 export async function updateAssetIfStatus(
   assetId: string,
   sellerId: string,
@@ -249,12 +221,10 @@ export async function findAssetOwnership(assetId: string) {
   });
 }
 
-/** PUBLISHED → DRAFT, only if still published (see `updateAssetIfStatus`). */
 export async function unpublishIfPublished(assetId: string, sellerId: string): Promise<boolean> {
   return updateAssetIfStatus(assetId, sellerId, "PUBLISHED", { status: "DRAFT", publishedAt: null });
 }
 
-/** DRAFT → PUBLISHED, only if still a draft. */
 export async function publishIfDraft(assetId: string, sellerId: string): Promise<boolean> {
   return updateAssetIfStatus(assetId, sellerId, "DRAFT", { status: "PUBLISHED", publishedAt: new Date() });
 }

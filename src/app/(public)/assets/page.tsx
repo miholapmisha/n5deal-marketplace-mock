@@ -20,13 +20,9 @@ export const metadata: Metadata = {
   title: "All listings",
 };
 
-// S3. Every filter lives in the query string: the page parses it, the server filters and
-// counts, and client controls only ever change the URL. Reading searchParams makes the page
-// render per request. A buyer with a profile also gets match badges and the Best match sort.
 export default async function AssetsPage({ searchParams }: PageProps<"/assets">) {
   const requested = parseCatalogFilters(await searchParams);
   const [catalog, options] = await Promise.all([listCatalog(requested), getCatalogFacetOptions(requested)]);
-  // What was applied: the clamped page, and Newest when best match had nothing to score.
   const filters: CatalogFilters = { ...requested, page: catalog.page, sort: catalog.sort };
 
   const first = (catalog.page - 1) * CATALOG_PAGE_SIZE + 1;

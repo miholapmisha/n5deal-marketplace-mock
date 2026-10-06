@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   title: "Messages",
 };
 
-// Desktop right pane before a thread is picked. On phones the list fills the screen instead.
 export default async function MessagesPage() {
   const user = await requireRole("BUYER", "SELLER");
   const conversations = await listConversations();

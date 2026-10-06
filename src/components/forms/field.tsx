@@ -3,9 +3,6 @@ import { cn } from "cn";
 
 import { Label } from "@/components/ui/label";
 
-// Label + control + hint / Zod errors, wired with ids so screen readers announce the error.
-
-/** Props for the control inside a `Field` with the same `id` (and a `hint`, if `hasHint`). */
 export function controlProps(id: string, errors?: string[], hasHint = false) {
   const hasErrors = Boolean(errors?.length);
   const describedBy = [hasHint && !hasErrors && `${id}-hint`, hasErrors && `${id}-error`].filter(Boolean).join(" ");
@@ -17,7 +14,6 @@ interface FieldProps {
   label: ReactNode;
   hint?: ReactNode;
   errors?: string[];
-  /** A group of controls (checkboxes, chips): rendered as a fieldset with a legend. */
   group?: boolean;
   className?: string;
   children: ReactNode;
@@ -64,7 +60,6 @@ export function Field({ id, label, hint, errors, group = false, className, child
   );
 }
 
-/** Native select styled like the shadcn input (native = free keyboard and mobile pickers). */
 export const selectClass =
   "h-10 w-full min-w-0 rounded-lg border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20";
 

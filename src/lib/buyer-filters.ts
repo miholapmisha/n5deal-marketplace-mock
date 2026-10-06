@@ -1,12 +1,7 @@
 import type { BuyerType, Category } from "@/generated/prisma/enums";
 
-// The buyer directory's state (SPEC §5 S8), kept in the URL like the catalog's. Pure and
-// client-safe: the page parses it (parse-buyer-filters.ts), client controls patch it and
-// navigate to `buyersHref(...)`.
-
 export const BUYERS_PATH = "/buyers";
 export const BUYERS_PAGE_SIZE = 12;
-/** Keyword search uses at most this many words; each adds an OR group to the query. */
 export const MAX_BUYER_KEYWORDS = 6;
 
 export interface BuyerFilters {
@@ -16,7 +11,6 @@ export interface BuyerFilters {
   buyerTypes: BuyerType[];
   ticketMin: number | null;
   ticketMax: number | null;
-  /** "Rank for": one of the viewing seller's published assets, by id. */
   rank: string | null;
   page: number;
 }
@@ -32,7 +26,6 @@ export const DEFAULT_BUYER_FILTERS: BuyerFilters = {
   page: 1,
 };
 
-/** URL keys. Short and stable: they end up in shared links. */
 export const BUYER_PARAMS = {
   q: "q",
   categories: "category",
@@ -44,7 +37,6 @@ export const BUYER_PARAMS = {
   page: "page",
 } as const satisfies Record<keyof BuyerFilters, string>;
 
-/** Canonical query string: fixed key order, defaults omitted, so equal filters → equal URLs. */
 export function buyerSearchParams(filters: BuyerFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.q) params.set(BUYER_PARAMS.q, filters.q);
@@ -63,17 +55,14 @@ export function buyersHref(filters: BuyerFilters): string {
   return query ? `${BUYERS_PATH}?${query}` : BUYERS_PATH;
 }
 
-/** A new filter object with the patch applied; any change but an explicit page → page 1. */
 export function withBuyerFilters(filters: BuyerFilters, patch: Partial<BuyerFilters>): BuyerFilters {
   return { ...filters, page: 1, ...patch };
 }
 
-/** Filters reset, ranking kept: "Reset all filters" is not "stop ranking". */
 export function clearedBuyerFilters(filters: BuyerFilters): BuyerFilters {
   return { ...DEFAULT_BUYER_FILTERS, rank: filters.rank };
 }
 
-/** Filters a user set in the side panel (search is visible above the results). */
 export function buyerPanelFilterCount(filters: BuyerFilters): number {
   return (
     filters.categories.length +
@@ -87,7 +76,6 @@ export function hasActiveBuyerFilters(filters: BuyerFilters): boolean {
   return filters.q !== null || buyerPanelFilterCount(filters) > 0;
 }
 
-/** S9, optionally with the asset to talk about preselected in the contact form. */
 export function buyerDetailPath(buyerId: string, assetId?: string | null): string {
   const path = `${BUYERS_PATH}/${encodeURIComponent(buyerId)}`;
   return assetId ? `${path}?asset=${encodeURIComponent(assetId)}` : path;

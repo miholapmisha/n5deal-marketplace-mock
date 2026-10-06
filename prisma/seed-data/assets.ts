@@ -5,7 +5,6 @@ type ListingInput = Omit<
   Prisma.AssetCreateManyInput,
   "id" | "createdAt" | "updatedAt" | "publishedAt" | "otherLicenses"
 > & {
-  /** Days before the seed anchor the listing was created; drives "Newest" ordering. */
   ageDays: number;
   otherLicenses?: string[];
 };
@@ -218,7 +217,6 @@ const vistulaAssets = [
   }),
 ];
 
-// The seller is suspended, so none of these appear in public queries (derived visibility).
 const auroraAssets = [
   listing({
     slug: "lithuania-casp-127", sellerId: "usr_seller_aurora", ageDays: 10,

@@ -1,4 +1,3 @@
-/** S4 skeleton, so opening an asset from the catalog does not flash the catalog skeleton. */
 export default function AssetDetailLoading() {
   return (
     <div className="flex animate-pulse flex-col gap-6" aria-busy="true" aria-label="Loading asset">

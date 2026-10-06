@@ -42,29 +42,20 @@ export type AssetCardData = Awaited<ReturnType<typeof findCatalogAssets>>[number
 
 const CATEGORIES = Object.values(Category);
 
-// ─── Catalog (S3) ────────────────────────────────────────────────────────────────────────
-
 export interface CatalogAsset extends AssetCardData {
-  /** The viewing buyer's match score (SPEC §4.4), or null for everyone else. */
   match: number | null;
 }
 
-/** "available" for buyers with a profile; buyers without one see it disabled. */
 export type BestMatchAvailability = "available" | "needs-profile" | "hidden";
 
 export interface CatalogPage {
   assets: CatalogAsset[];
-  /** Assets matching every filter. */
   total: number;
-  /** The page actually shown: a page past the end is clamped to the last one. */
   page: number;
   pageCount: number;
-  /** The sort applied: `best-match` falls back to `newest` when there is nothing to score. */
   sort: CatalogFilters["sort"];
   bestMatch: BestMatchAvailability;
-  /** Per category, matching every filter except the category (tab counts). */
   categoryCounts: Record<Category, number>;
-  /** The "All" tab: the sum of every category count. */
   allCount: number;
 }
 
@@ -72,7 +63,6 @@ function findPage(filters: CatalogFilters, page: number): Promise<AssetCardData[
   return findCatalogAssets(filters, (page - 1) * CATALOG_PAGE_SIZE, CATALOG_PAGE_SIZE);
 }
 
-/** Every matching asset's id, ranked for this buyer (best first). */
 async function rankCatalog(filters: CatalogFilters, profile: MatchProfile): Promise<Ranked[]> {
   const facts = await findCatalogMatchFacts(filters, MAX_RANKED_ROWS);
   return rankBy(facts, (asset) => matchScore(asset, profile), (asset) => asset.publishedAt);
@@ -85,13 +75,10 @@ async function findRankedPage(ranked: Ranked[], page: number): Promise<AssetCard
 
 export async function listCatalog(requested: CatalogFilters): Promise<CatalogPage> {
   const { isBuyer, profile } = await getViewerMatchContext();
-  // Best match needs a profile to score against; without one the catalog shows the newest.
   const filters: CatalogFilters =
     requested.sort === "best-match" && !profile ? { ...requested, sort: "newest" } : requested;
   const ranking = filters.sort === "best-match" ? profile : null;
 
-  // Facet counts and the results in parallel. Only a page past the end (stale link) costs a
-  // second fetch; best match always loads its page after ranking.
   const [groups, ranked, requestedRows] = await Promise.all([
     countCatalogAssetsByCategory(filters),
     ranking ? rankCatalog(filters, ranking) : null,
@@ -101,8 +88,6 @@ export async function listCatalog(requested: CatalogFilters): Promise<CatalogPag
     CATEGORIES.map((category) => [category, groups.find((group) => group.category === category)?.count ?? 0]),
   ) as Record<Category, number>;
 
-  // The facet query already counted every match per category, so the result total is just
-  // the sum over the selected categories: one query fewer than a separate COUNT(*).
   const allCount = groups.reduce((sum, group) => sum + group.count, 0);
   const total =
     ranked?.length ??
@@ -143,10 +128,6 @@ export interface CatalogFacetOptions {
 
 const byLabel = (a: FacetOption, b: FacetOption) => a.label.localeCompare(b.label, "en");
 
-/**
- * Values present on public assets, plus any selected in the URL that no longer occur, so a
- * stale link's filter can still be seen and unchecked.
- */
 export async function getCatalogFacetOptions(filters: CatalogFilters): Promise<CatalogFacetOptions> {
   const values = await findCatalogFacetValues();
   const merge = (found: string[], selected: string[]) => [...new Set([...found, ...selected])];
@@ -164,13 +145,10 @@ export async function getCatalogFacetOptions(filters: CatalogFilters): Promise<C
   };
 }
 
-/** License types listed in the catalog, sorted: the choices AI search gets (SPEC §7). */
 export async function listCatalogLicenseTypes(): Promise<string[]> {
   const licenseTypes = await findPublicLicenseTypes();
   return [...licenseTypes].sort((a, b) => a.localeCompare(b, "en"));
 }
-
-// ─── Asset detail (S4) ───────────────────────────────────────────────────────────────────
 
 type AssetDetailRow = NonNullable<Awaited<ReturnType<typeof findAssetDetailBySlug>>>;
 
@@ -180,25 +158,16 @@ export interface AssetDetailView {
   asset: AssetDetail;
   viewerRole: Role | null;
   isOwner: boolean;
-  /** False for drafts, hidden/removed assets, and assets of a suspended or removed seller. */
   isPublic: boolean;
   sellerStatus: AssetDetailRow["seller"]["status"];
-  /** Company (or person) name, or null while the seller stays anonymous. */
   sellerName: string | null;
-  /** The viewing buyer's existing thread about this asset. */
   conversationId: string | null;
-  /** The viewing buyer's match score, or null (not a buyer, or no profile yet). */
   match: number | null;
 }
 
-/** Slugs are generated as lower-case words and digits joined by hyphens. */
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_SLUG_LENGTH = 120;
 
-/**
- * The asset as this viewer may see it, or null (→ 404) if they may not. Memoized per
- * request: `generateMetadata` and the page both ask for it.
- */
 export const getAssetDetail = cache(async (slug: string): Promise<AssetDetailView | null> => {
   if (slug.length > MAX_SLUG_LENGTH || !SLUG_PATTERN.test(slug)) return null;
 
@@ -226,15 +195,12 @@ export const getAssetDetail = cache(async (slug: string): Promise<AssetDetailVie
   };
 });
 
-// ─── Owner (S6, S7) ──────────────────────────────────────────────────────────────────────
-
 const SESSION_EXPIRED = "Your session has expired. Log in again.";
 const NOT_FOUND = "Asset not found.";
 const CHANGED = "This asset changed in the meantime. Refresh and try again.";
 
 export type OwnAssetRow = Awaited<ReturnType<typeof findOwnAssets>>[number];
 
-/** S6: the seller's own assets in every status except REMOVED, recently edited first. */
 export async function listOwnAssets(): Promise<OwnAssetRow[]> {
   const user = await getCurrentUser();
   if (user?.role !== "SELLER") return [];
@@ -243,7 +209,6 @@ export async function listOwnAssets(): Promise<OwnAssetRow[]> {
 
 export type AssetForEdit = NonNullable<Awaited<ReturnType<typeof findAssetForEdit>>>;
 
-/** S7 edit: the owner's asset, or null (→ 404) when it is missing, foreign, or removed. */
 export async function getAssetForEdit(assetId: string): Promise<AssetForEdit | null> {
   if (!assetIdSchema.safeParse({ assetId }).success) return null;
   const [user, asset] = await Promise.all([getCurrentUser(), findAssetForEdit(assetId)]);
@@ -259,7 +224,6 @@ type OwnershipCheck = { ok: true; user: CurrentUser; asset: OwnedAsset } | { ok:
 async function checkOwnership(assetId: string): Promise<OwnershipCheck> {
   const [user, asset] = await Promise.all([getCurrentUser(), findAssetOwnership(assetId)]);
   if (!user) return { ok: false, error: SESSION_EXPIRED };
-  // Same answer for "missing" and "not yours", so asset IDs cannot be probed.
   if (!asset || !isAssetOwner(asset, user) || asset.status === "REMOVED") return { ok: false, error: NOT_FOUND };
   return { ok: true, user, asset };
 }
@@ -275,25 +239,18 @@ function slugWords(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-/** "malta-emi-482913": readable like the seed's slugs; the random suffix keeps it unique. */
 function newAssetSlug(country: string, licenseType: string): string {
   const words = [slugWords(countryName(country)), slugWords(licenseType)].filter(Boolean).join("-");
   const base = words.slice(0, SLUG_BASE_MAX).replace(/-+$/, "") || "asset";
   return `${base}-${randomInt(100_000, 1_000_000)}`;
 }
 
-/**
- * Status fields an owner's save writes. A manager's hide outranks the owner: content edits
- * are saved, but the asset stays HIDDEN until a manager unhides it. `publishedAt` changes
- * only when the asset enters or leaves the catalog, so editing does not bump it to "Newest".
- */
 function statusAfterSave(current: AssetStatus | null, intent: AssetIntent): Partial<AssetWriteData> {
   if (current === "HIDDEN") return {};
   if (intent === "draft") return { status: "DRAFT", publishedAt: null };
   return current === "PUBLISHED" ? {} : { status: "PUBLISHED", publishedAt: new Date() };
 }
 
-/** S7: create (no `assetId`) or edit an asset, as a draft or published. */
 export async function saveAsset(
   assetId: string | undefined,
   intent: AssetIntent,
@@ -318,7 +275,6 @@ export async function saveAsset(
   return changed ? { ok: true, slug: asset.slug } : { ok: false, error: CHANGED };
 }
 
-/** S6: a draft goes live (DRAFT → PUBLISHED). Drafts pass the same schema as published assets. */
 export async function publishAsset(assetId: string): Promise<AssetChangeResult> {
   const check = await checkOwnership(assetId);
   if (!check.ok) return check;
@@ -332,7 +288,6 @@ export async function publishAsset(assetId: string): Promise<AssetChangeResult> 
   return changed ? { ok: true, slug: asset.slug } : { ok: false, error: CHANGED };
 }
 
-/** Owner takes a published asset off the catalog (PUBLISHED → DRAFT). */
 export async function unpublishAsset(assetId: string): Promise<AssetChangeResult> {
   const check = await checkOwnership(assetId);
   if (!check.ok) return check;

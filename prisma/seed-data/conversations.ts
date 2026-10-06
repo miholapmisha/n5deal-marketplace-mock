@@ -9,9 +9,7 @@ interface ThreadInput {
   buyerId: string;
   sellerId: string;
   initiatedBy: "BUYER" | "SELLER";
-  /** Messages in order; `from` is the side that sent it. */
   messages: { from: "BUYER" | "SELLER"; body: string; at: Date }[];
-  /** How many of the newest messages each side has not read yet. */
   unread?: { buyer?: number; seller?: number };
 }
 
@@ -49,7 +47,6 @@ function thread({ unread = {}, ...input }: ThreadInput): SeedThread {
 }
 
 export const threads: SeedThread[] = [
-  // Demo buyer ↔ demo seller. Used by Playwright flows 1 and 3.
   thread({
     id: "conv_demo_lt_emi",
     assetId: "ast_101",
@@ -64,7 +61,6 @@ export const threads: SeedThread[] = [
       { from: "BUYER", at: daysAgo(1, 4), body: "Following up on the question above — could we also schedule a call this week?" },
     ],
   }),
-  // Demo buyer ↔ Meridian, started by the seller.
   thread({
     id: "conv_demo_mt_emi",
     assetId: "ast_105",
@@ -101,7 +97,6 @@ export const threads: SeedThread[] = [
       { from: "SELLER", at: daysAgo(11, 23), body: "CET1 ratio is 18.4%. Deposits are 70% private clients and 30% corporate. Full figures follow the NDA." },
     ],
   }),
-  // Seller is suspended: the buyer still sees the thread, read-only with a banner.
   thread({
     id: "conv_lowlands_lt_casp",
     assetId: "ast_127",

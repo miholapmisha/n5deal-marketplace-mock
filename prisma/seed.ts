@@ -1,6 +1,3 @@
-// Deterministic, idempotent seed (SPEC §8): fixed IDs, fixed timestamps, and a full reset,
-// so every run ends in exactly the same state. Run with `npm run db:seed`.
-// WARNING: this deletes ALL marketplace data in the target database before inserting.
 import "dotenv/config";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -34,7 +31,6 @@ function databaseHost(url: string): string {
 }
 
 async function main(): Promise<void> {
-  // Same preference as prisma.config.ts: a direct connection for bulk admin work.
   const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set. Copy .env.example to .env and fill it in.");
@@ -49,7 +45,6 @@ async function main(): Promise<void> {
 
   try {
     await db.$transaction([
-      // Static SQL, no user input. CASCADE clears every table that references these.
       db.$executeRaw`TRUNCATE TABLE "Message", "Conversation", "ModerationLog", "Session", "BuyerProfile", "Asset", "User", "AiSearchUsage" CASCADE`,
       db.user.createMany({ data: users }),
       db.buyerProfile.createMany({ data: buyerProfiles }),

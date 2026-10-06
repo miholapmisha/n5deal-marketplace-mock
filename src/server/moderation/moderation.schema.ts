@@ -11,7 +11,6 @@ const reason = z
   .min(REASON_MIN_LENGTH, { error: `Give a reason of at least ${REASON_MIN_LENGTH} characters.` })
   .max(REASON_MAX_LENGTH, { error: `Keep the reason under ${REASON_MAX_LENGTH} characters.` });
 
-/** Which record and which action: hidden inputs, so a failure means a stale or forged form. */
 export const moderateUserTargetSchema = z.object({
   userId: recordId,
   action: z.enum(USER_MODERATIONS),
@@ -22,10 +21,8 @@ export const moderateAssetTargetSchema = z.object({
   action: z.enum(ASSET_MODERATIONS),
 });
 
-/** What the manager typed. Checked apart from the target so errors land on the right field. */
 export const moderationInputSchema = z.object({
   reason,
-  /** Removal only: the typed company name. Compared in the service, which knows the target. */
   confirmation: z.string().trim().max(200).optional(),
 });
 

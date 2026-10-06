@@ -10,8 +10,6 @@ import {
 } from "@/server/policies/asset-visibility";
 import { canBrowseBuyers, isBuyerListed, listedBuyerWhere } from "@/server/policies/buyer-visibility";
 
-// SPEC §4.1 — the pure rules and the Prisma `where` builders must say the same thing.
-
 const ASSET_STATUSES: AssetStatus[] = ["DRAFT", "PUBLISHED", "HIDDEN", "REMOVED"];
 const USER_STATUSES: UserStatus[] = ["ACTIVE", "SUSPENDED", "REMOVED"];
 

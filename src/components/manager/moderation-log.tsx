@@ -20,7 +20,6 @@ const ACTION_CLASSES: Record<ModerationAction, string> = {
 const headClass = "px-4 py-3 font-medium whitespace-nowrap";
 const cellClass = "px-4 py-3 align-top";
 
-/** S10: the newest moderation actions — when, who, what, on whom, and why. */
 export function ModerationLog({ entries }: { entries: ModerationLogEntry[] }) {
   if (entries.length === 0) {
     return (

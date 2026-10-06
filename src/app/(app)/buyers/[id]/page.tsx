@@ -23,16 +23,12 @@ export async function generateMetadata({ params }: PageProps<"/buyers/[id]">): P
   return { title: buyer ? (buyer.companyName ?? buyer.name) : "Buyer not found" };
 }
 
-// S9. Private (sellers and managers only); a buyer who is suspended, removed, or hidden from
-// sellers is a 404. Sellers see how the buyer fits each of their published assets and contact
-// them about one; `?asset=` (from the ranked directory) preselects it.
 export default async function BuyerDetailPage({ params, searchParams }: PageProps<"/buyers/[id]">) {
   const viewer = await requireRole("SELLER", "MANAGER");
   const buyer = await getBuyerDetail((await params).id);
   if (!buyer) notFound();
   const assetParam = parseAssetParam(await searchParams);
   const contact = viewer.role === "SELLER" ? await getContactBuyerOptions(buyer.id) : null;
-  // Back to the directory still ranked for the asset the seller came from.
   const rankedFrom = contact?.assets.some((asset) => asset.id === assetParam) ? assetParam : null;
 
   return (
@@ -154,7 +150,6 @@ function ContactBlock({ buyer, contact, initialAssetId }: ContactBlockProps) {
           defaultBody={`Hello ${firstName}, your acquisition profile looks like a good fit for one of our listings. Would you like to receive more details?`}
         />
       ) : (
-        // SPEC §9: a seller with no published assets has nothing to offer yet.
         <div className="flex flex-col gap-3 text-sm">
           <p className="text-muted-foreground">
             You contact buyers about one of your published assets, and you have none yet. Publish an asset first.

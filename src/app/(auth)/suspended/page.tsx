@@ -9,8 +9,6 @@ export const metadata: Metadata = {
   title: "Account suspended",
 };
 
-// SPEC §4.3: a suspended user who logs in lands here and sees why. The reason arrives in a
-// short-lived cookie set by the login action; without it we show general guidance only.
 export default async function SuspendedPage() {
   const reason = await readSuspendedNotice();
 

@@ -12,9 +12,6 @@ import {
   searchQuerySchema,
 } from "@/lib/search-params";
 
-// URL → BuyerFilters (SPEC §5 S8). Same contract as the catalog: invalid values are dropped.
-// Whether `rank` names an asset the viewer may rank for is the service's call, not the URL's.
-
 const categorySchema = enumValueSchema(Category);
 const buyerTypeSchema = enumValueSchema(BuyerType);
 const querySchema = searchQuerySchema(MAX_BUYER_KEYWORDS);
@@ -34,7 +31,6 @@ export function parseBuyerFilters(raw: RawSearchParams): BuyerFilters {
   };
 }
 
-/** S9's `?asset=` (the asset to preselect in the contact form), or null. */
 export function parseAssetParam(raw: RawSearchParams): string | null {
   return parseOne(raw, "asset", recordIdSchema);
 }

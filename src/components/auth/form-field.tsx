@@ -10,7 +10,6 @@ type FormFieldProps = ComponentProps<typeof Input> & {
   hint?: string;
 };
 
-/** Label + input + Zod errors, wired together with ids so screen readers announce errors. */
 export function FormField({ name, label, errors, hint, className, ...inputProps }: FormFieldProps) {
   const id = `field-${name}`;
   const errorId = `${id}-error`;

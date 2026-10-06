@@ -4,7 +4,6 @@ import { z } from "zod";
 
 import { DEMO_ACCOUNTS, type DemoRole } from "@/lib/demo-accounts";
 
-// bcrypt only reads the first 72 bytes of a password; longer ones would silently collide.
 const BCRYPT_MAX_BYTES = 72;
 const PASSWORD_MIN = 8;
 
@@ -13,13 +12,10 @@ const email = z
   .trim()
   .toLowerCase()
   .max(254, { error: "Email is too long." })
-  // The browser's own `type=email` rule. Zod's default demands an all-letter TLD, which
-  // rejects the seeded `@demo.n5deal` accounts.
   .pipe(z.email({ pattern: z.regexes.html5Email, error: "Enter a valid email address." }));
 
 export const loginSchema = z.object({
   email,
-  // Login only checks presence: rules for new passwords must not lock out old accounts.
   password: z.string().min(1, { error: "Enter your password." }).max(256),
 });
 
@@ -52,7 +48,6 @@ export const demoLoginSchema = z.object({
 
 type FieldErrors<K extends string> = Partial<Record<K, string[]>>;
 
-/** Returned to `useActionState`; only non-secret input is echoed back (never the password). */
 export interface LoginFormState {
   email: string;
   error?: string;

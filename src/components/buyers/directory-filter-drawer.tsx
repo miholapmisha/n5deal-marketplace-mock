@@ -8,11 +8,9 @@ import type { CountryOption } from "@/lib/countries";
 
 interface DirectoryFilterDrawerProps {
   countries: CountryOption[];
-  /** Results for the current URL; refreshes as each change lands. */
   total: number;
 }
 
-/** Mobile: the buyer filter panel in a drawer. */
 export function DirectoryFilterDrawer({ countries, total }: DirectoryFilterDrawerProps) {
   const { filters, isPending } = useDirectoryNavigation();
 

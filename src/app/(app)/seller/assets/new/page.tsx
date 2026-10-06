@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   title: "Publish an asset",
 };
 
-// S7 (new). Also the landing page right after a seller registers.
 export default async function NewAssetPage() {
   await requireRole("SELLER");
   return (

@@ -11,7 +11,6 @@ interface Banner {
   detail: string | null;
 }
 
-/** Why this asset is not in the public catalog, or null if it is. Owners and managers only. */
 function bannerFor({ asset, isPublic, sellerStatus, isOwner }: AssetDetailView): Banner | null {
   if (isPublic) return null;
   switch (asset.status) {
@@ -37,7 +36,6 @@ function bannerFor({ asset, isPublic, sellerStatus, isOwner }: AssetDetailView):
         detail: asset.statusReason,
       };
     case "PUBLISHED":
-      // Published but not public: the seller is suspended or removed (visibility is derived).
       return {
         tone: "warning",
         icon: <CircleAlert aria-hidden />,

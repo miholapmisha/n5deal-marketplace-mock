@@ -20,13 +20,10 @@ function countriesLabel(codes: string[]): string {
 
 interface BuyerCardProps {
   buyer: BuyerCardData;
-  /** Sellers get a Contact button; managers only view. */
   canContact: boolean;
-  /** The asset the directory is ranked for: S9 preselects it in the contact form. */
   rankAssetId: string | null;
 }
 
-/** S8 card: who the buyer is and what they look for, at a glance. */
 export function BuyerCard({ buyer, canContact, rankAssetId }: BuyerCardProps) {
   const { profile } = buyer;
   const title = buyer.companyName ?? buyer.name;

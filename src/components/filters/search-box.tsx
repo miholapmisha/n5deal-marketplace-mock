@@ -8,18 +8,14 @@ import { Button } from "@/components/ui/button";
 const DEFAULT_MAX_LENGTH = 100;
 
 interface SearchBoxProps {
-  /** The search in the URL. */
   query: string | null;
-  /** Called with the cleaned-up text, or null to clear the search. */
   onSearch: (query: string | null) => void;
   placeholder: string;
   label: string;
   maxLength?: number;
-  /** A search is running somewhere other than a navigation (AI search): the button waits. */
   pending?: boolean;
 }
 
-/** A keyword search whose value lives in the URL; it applies on submit, not per keystroke. */
 export function SearchBox({
   query,
   onSearch,
@@ -29,7 +25,6 @@ export function SearchBox({
   pending = false,
 }: SearchBoxProps) {
   const [text, setText] = useState(query ?? "");
-  // Follow the URL when it changes elsewhere (a removed chip, "Reset all filters").
   const [syncedQuery, setSyncedQuery] = useState(query);
   if (query !== syncedQuery) {
     setSyncedQuery(query);

@@ -9,17 +9,14 @@ import { countryFlag } from "@/lib/format";
 
 interface CountryMultiSelectProps {
   id: string;
-  /** From the server (COUNTRY_OPTIONS), so labels match between SSR and hydration. */
   options: readonly CountryOption[];
   values: string[];
   onChange: (values: string[]) => void;
-  /** Shown instead of chips while nothing is selected, e.g. "Any country". */
   emptyLabel: string;
   "aria-invalid"?: boolean;
   "aria-describedby"?: string;
 }
 
-/** Chips for the picked countries above a searchable checklist of all 249. */
 export function CountryMultiSelect({ id, options, values, onChange, emptyLabel, ...aria }: CountryMultiSelectProps) {
   const listId = useId();
   const labelOf = (code: string) => options.find((option) => option.value === code)?.label ?? code;

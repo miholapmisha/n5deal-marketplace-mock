@@ -1,4 +1,3 @@
-// Right-pane skeleton while a thread loads; the conversation list (layout) stays in place.
 export default function ThreadLoading() {
   return (
     <div className="flex flex-1 animate-pulse flex-col" aria-busy aria-label="Loading conversation">

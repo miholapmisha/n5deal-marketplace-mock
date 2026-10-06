@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MESSAGES_PATH } from "@/lib/messaging";
 
-/** In the right pane: a thread that is not yours (or gone), or an asset you cannot contact. */
 export default function ConversationNotFound() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">

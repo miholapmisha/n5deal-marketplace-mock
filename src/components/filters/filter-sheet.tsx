@@ -16,15 +16,12 @@ import {
 } from "@/components/ui/sheet";
 
 interface FilterSheetProps {
-  /** Filters set in the panel, shown on the trigger. */
   activeCount: number;
   isPending: boolean;
-  /** Results for the current URL; refreshes as each change lands. */
   total: number;
   children: ReactNode;
 }
 
-/** Mobile: a filter panel in a drawer. Hidden from `lg` up, where the side panel shows. */
 export function FilterSheet({ activeCount, isPending, total, children }: FilterSheetProps) {
   return (
     <Sheet>

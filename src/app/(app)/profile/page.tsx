@@ -10,7 +10,6 @@ export const metadata: Metadata = {
   title: "My profile",
 };
 
-// S5. Right after registering, this is the onboarding step (no profile row yet).
 export default async function ProfilePage() {
   const user = await requireRole("BUYER");
   const own = await getOwnBuyerProfile();

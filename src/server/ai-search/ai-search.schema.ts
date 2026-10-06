@@ -8,11 +8,6 @@ import { MAX_PRICE_EUR } from "@/lib/catalog-filters";
 import { REGION_KEYS } from "@/lib/regions";
 import { NO_CONTROL_CHARS } from "@/lib/search-params";
 
-// SPEC §7: what the browser sends, and what the model may answer. The output schema is also
-// sent to Gemini as its response JSON schema, so it sticks to keywords Gemini supports
-// (type, enum, items, maxItems, minimum, maximum, description) — no string patterns or
-// lengths. The URL parser drops anything still invalid (an unknown country code).
-
 export const aiSearchRequestSchema = z.object({
   query: z
     .string()
@@ -20,17 +15,11 @@ export const aiSearchRequestSchema = z.object({
     .pipe(z.string().min(1).max(MAX_AI_QUERY_LENGTH).regex(NO_CONTROL_CHARS)),
 });
 
-/** More than any region holds, so "the EU plus Switzerland and the UK" still fits. */
 const MAX_COUNTRIES = 40;
 
 const euros = z.int().min(0).max(MAX_PRICE_EUR);
 
-/**
- * The filters a model reply may contain. `licenseTypes` is limited to the license types in
- * the catalog right now, so the model cannot invent one that matches nothing.
- */
 export function aiFiltersSchema(licenseTypes: readonly string[]) {
-  // With no license types in the catalog the array must stay empty (`maxItems: 0`).
   const licenseType: z.ZodType<string> =
     licenseTypes.length > 0 ? z.enum(licenseTypes as [string, ...string[]]) : z.string();
 
@@ -68,8 +57,6 @@ export function aiFiltersSchema(licenseTypes: readonly string[]) {
 
 export type AiFilters = z.infer<ReturnType<typeof aiFiltersSchema>>;
 
-/** The output schema as JSON Schema for Gemini's `responseJsonSchema`. */
 export function aiFiltersJsonSchema(schema: ReturnType<typeof aiFiltersSchema>): Record<string, unknown> {
-  // `$schema` names the draft; Gemini only accepts the keywords listed above.
   return Object.fromEntries(Object.entries(z.toJSONSchema(schema)).filter(([key]) => key !== "$schema"));
 }

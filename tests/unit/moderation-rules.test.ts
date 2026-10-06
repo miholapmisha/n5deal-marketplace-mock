@@ -9,8 +9,6 @@ import {
   userModerationBlock,
 } from "@/server/policies/moderation-rules";
 
-// SPEC §4.3 — who a manager may act on, and which status each action starts from.
-
 const manager = { id: "manager_1" };
 
 describe("userModerationBlock", () => {

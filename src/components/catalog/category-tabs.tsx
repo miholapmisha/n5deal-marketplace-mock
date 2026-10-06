@@ -19,10 +19,6 @@ interface Tab {
   active: boolean;
 }
 
-/**
- * The n5deal.com pill tabs. Counts are facet counts: they apply every other filter, so each
- * number is what you would get by clicking that tab. Real links: they work without JS.
- */
 export function CategoryTabs({ filters, counts, allCount }: CategoryTabsProps) {
   const tabs: Tab[] = [
     { key: "ALL", label: "All", categories: [], count: allCount, active: filters.categories.length === 0 },

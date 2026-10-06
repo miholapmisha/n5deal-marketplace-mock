@@ -10,7 +10,6 @@ export const metadata: Metadata = {
   title: "Edit asset",
 };
 
-// S7 (edit). Someone else's asset, a removed one, or a malformed id → 404.
 export default async function EditAssetPage({ params }: PageProps<"/seller/assets/[id]/edit">) {
   await requireRole("SELLER");
   const asset = await getAssetForEdit((await params).id);

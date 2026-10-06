@@ -13,10 +13,6 @@ import {
 } from "@/server/moderation/moderation.schema";
 import { type ModerationResult, moderateAsset, moderateUser } from "@/server/moderation/moderation.service";
 
-// Entry points for the moderation dialogs: parse → service (manager check + rules) →
-// revalidate. A moderation changes what the catalog, the buyer directory, message threads,
-// and the owner's pages show, so the whole app is revalidated rather than a list of paths.
-
 const STALE_FORM = "This form is out of date. Refresh the page and try again.";
 
 function field(formData: FormData, name: string): string | undefined {

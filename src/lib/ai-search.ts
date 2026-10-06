@@ -1,18 +1,13 @@
 import type { CatalogFilters } from "@/lib/catalog-filters";
 
-// AI search (SPEC §7) as both sides of POST /api/ai-search see it. Pure and client-safe.
-
 export const AI_SEARCH_ENDPOINT = "/api/ai-search";
 
-/** A sentence, not a few keywords, so longer than the keyword search box allows. */
 export const MAX_AI_QUERY_LENGTH = 200;
 
-/** What a search sets: every filter. Sort and page belong to the page, not to the search. */
 export type SearchFilters = Omit<CatalogFilters, "sort" | "page">;
 
 export type FallbackReason = "unavailable" | "no-filters" | "rate-limited";
 
-/** Filters to apply, or why the client should run the text as a keyword search instead. */
 export type AiSearchResult = { mode: "ai"; filters: SearchFilters } | { mode: "keyword"; reason: FallbackReason };
 
 export const FALLBACK_NOTICES: Record<FallbackReason, string> = {

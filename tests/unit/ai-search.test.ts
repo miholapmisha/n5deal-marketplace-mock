@@ -9,10 +9,6 @@ import { aiFiltersJsonSchema, aiFiltersSchema, aiSearchRequestSchema } from "@/s
 import { AI_SEARCHES_PER_HOUR, aiSearch } from "@/server/ai-search/ai-search.service";
 import { getCurrentUser } from "@/server/auth/session";
 
-// SPEC §7 — what the model may answer, how an answer becomes filters, and the keyword
-// fallback at every step that can fail. The model, the counter table, and the session are
-// mocked: no API key or database is needed.
-
 vi.mock("@/server/ai-search/ai-search.model", () => ({ interpretQuery: vi.fn(), isAiSearchConfigured: vi.fn() }));
 vi.mock("@/server/ai-search/ai-search.repo", () => ({ incrementSearchCount: vi.fn(), deleteSearchCountsBefore: vi.fn() }));
 vi.mock("@/server/auth/session", () => ({ getCurrentUser: vi.fn() }));

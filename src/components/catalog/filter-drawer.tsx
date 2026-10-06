@@ -8,11 +8,9 @@ import type { CatalogFacetOptions } from "@/server/assets/asset.service";
 
 interface FilterDrawerProps {
   options: CatalogFacetOptions;
-  /** Results for the current URL; refreshes as each change lands. */
   total: number;
 }
 
-/** Mobile: the catalog filter panel in a drawer. */
 export function FilterDrawer({ options, total }: FilterDrawerProps) {
   const { filters, isPending } = useCatalogNavigation();
 

@@ -1,7 +1,6 @@
 const CARD_PLACEHOLDERS = 6;
 const TAB_PLACEHOLDERS = 6;
 
-/** S3 skeleton: shown on first entry to the catalog (filter changes keep the old results). */
 export default function CatalogLoading() {
   return (
     <div className="flex animate-pulse flex-col gap-6" aria-busy="true" aria-label="Loading listings">

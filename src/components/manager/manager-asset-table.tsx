@@ -10,7 +10,6 @@ import type { ManagerAssetRow } from "@/server/moderation/moderation.service";
 const headClass = "px-4 py-3 font-medium whitespace-nowrap";
 const cellClass = "px-4 py-3 align-top";
 
-/** S10: every asset in every status, with the moderation actions its status allows. */
 export function ManagerAssetTable({ assets }: { assets: ManagerAssetRow[] }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-card">

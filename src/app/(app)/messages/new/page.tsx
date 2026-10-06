@@ -12,13 +12,10 @@ export const metadata: Metadata = {
   title: "Contact seller",
 };
 
-// S4 → S2: the buyer's first message about an asset, prefilled. A thread that already
-// exists opens instead, so a buyer never gets two threads about one asset (SPEC §4.2).
 export default async function NewConversationPage({ searchParams }: PageProps<"/messages/new">) {
   await requireRole("BUYER");
   const { asset: slug } = await searchParams;
   const view = typeof slug === "string" ? await getAssetDetail(slug) : null;
-  // A buyer can only see public assets, but say so explicitly: only those can be contacted.
   if (!view || !view.isPublic) notFound();
   if (view.conversationId) redirect(conversationPath(view.conversationId));
   const { asset } = view;

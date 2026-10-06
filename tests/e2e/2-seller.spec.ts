@@ -2,10 +2,6 @@ import { expect, test } from "@playwright/test";
 
 import { loginAs } from "./support";
 
-// SPEC §10 flow 2: publish an asset → it appears in the catalog → rank buyers → contact a
-// buyer.
-
-/** A word no seeded listing contains, so the catalog search finds only this asset. */
 const MARKER = "Zephyrine";
 const TITLE = `${MARKER} Maltese EMI with card issuing`;
 const DESCRIPTION =
@@ -45,7 +41,6 @@ test("seller publishes an asset, ranks buyers for it, and contacts the best fit"
 
   await bestFit.getByRole("link", { name: "Contact" }).click();
   await expect(page.getByRole("heading", { level: 1, name: buyerName })).toBeVisible();
-  // Coming from the ranking, the form already points at the asset the buyer was ranked for.
   await expect(page.getByLabel("About which asset?").locator("option:checked")).toHaveText(
     new RegExp(`^${TITLE} · \\d+% match$`),
   );

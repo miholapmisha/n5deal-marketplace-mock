@@ -1,9 +1,5 @@
 import "server-only";
 
-// The system instruction for AI search (SPEC §7). The response schema already lists every
-// allowed value; this text says how to choose between them. Fixed text: the user's query is
-// sent as the message, never spliced in here.
-
 export const AI_SEARCH_INSTRUCTION = `
 You turn one sentence from a buyer on an M&A marketplace for licensed fintech businesses
 into catalog filters. Reply with JSON that matches the response schema. Leave out every

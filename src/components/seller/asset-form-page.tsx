@@ -17,7 +17,6 @@ interface AssetFormPageProps {
   initialValues: AssetFormValues;
 }
 
-/** S7 page frame shared by "new" and "edit": back link, heading, status, then the form. */
 export function AssetFormPage({ title, description, assetId, slug, status, statusReason, initialValues }: AssetFormPageProps) {
   return (
     <div className="flex flex-col gap-6">

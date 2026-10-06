@@ -15,7 +15,6 @@ interface NavLink {
   label: string;
 }
 
-// SPEC §5 "Global header by role". Messages carries the unread-conversation count.
 const NAV_BY_ROLE: Record<Role | "ANONYMOUS", NavLink[]> = {
   ANONYMOUS: [{ href: "/assets", label: "All listings" }],
   BUYER: [

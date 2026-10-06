@@ -21,13 +21,10 @@ function signalTone(points: number, max: number): string {
 }
 
 interface BuyerFitProps {
-  /** The seller's published assets scored against this buyer, best first. */
   assets: ContactAssetOption[];
-  /** The asset the seller came from (ranked directory), marked in the list. */
   highlightId: string | null;
 }
 
-/** S9 for sellers: the match score per own asset, split into its signals (SPEC §4.4). */
 export function BuyerFit({ assets, highlightId }: BuyerFitProps) {
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-card sm:p-6">

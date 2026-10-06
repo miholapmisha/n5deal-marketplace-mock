@@ -12,7 +12,6 @@ import type { CountryOption } from "@/lib/countries";
 import { countryFlag, formatPrice } from "@/lib/format";
 import { BUSINESS_STATUS_LABELS, CATEGORY_LABELS } from "@/lib/labels";
 
-/** License types seen on n5deal.com; the field stays free text. */
 const LICENSE_SUGGESTIONS = ["EMI", "PI", "CASP", "VASP", "Banking", "PI (AISP/PISP)", "Investment firm"];
 const inputClass = "h-10 bg-card";
 

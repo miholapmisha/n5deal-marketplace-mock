@@ -12,11 +12,8 @@ import { contactBuyerAction } from "@/server/messaging/message.actions";
 
 interface ContactBuyerFormProps {
   buyerId: string;
-  /** The seller's published assets, best fit first (never empty: the page explains that case). */
   assets: { id: string; title: string; match: number }[];
-  /** Existing thread per asset id: picking such an asset offers to open it instead. */
   threadByAsset: Record<string, string>;
-  /** Preselected asset (e.g. the one the directory was ranked for), if it is in `assets`. */
   initialAssetId: string | null;
   defaultBody: string;
 }
@@ -30,7 +27,6 @@ function initialAsset(
   return (preselected ?? assets.find((asset) => !threadByAsset[asset.id]) ?? assets[0]).id;
 }
 
-/** S9 "Contact buyer": pick one of your published assets, write the first message. */
 export function ContactBuyerForm({ buyerId, assets, threadByAsset, initialAssetId, defaultBody }: ContactBuyerFormProps) {
   const [assetId, setAssetId] = useState(() => initialAsset(assets, threadByAsset, initialAssetId));
   const existingThread = threadByAsset[assetId];

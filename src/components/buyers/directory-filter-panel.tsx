@@ -25,7 +25,6 @@ interface DirectoryFilterPanelProps {
   countries: CountryOption[];
 }
 
-/** S8 filters: side panel on desktop, drawer content on mobile. Changes apply immediately. */
 export function DirectoryFilterPanel({ countries }: DirectoryFilterPanelProps) {
   const { filters, apply } = useDirectoryNavigation();
 

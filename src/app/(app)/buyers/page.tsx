@@ -25,8 +25,6 @@ export const metadata: Metadata = {
   title: "Buyers",
 };
 
-// S8. Private: active sellers and managers only. Filters live in the URL like the catalog's;
-// a seller can rank every matching buyer against one of their published assets.
 export default async function BuyersPage({ searchParams }: PageProps<"/buyers">) {
   const viewer = await requireRole("SELLER", "MANAGER");
   const requested = parseBuyerFilters(await searchParams);
@@ -35,7 +33,6 @@ export default async function BuyersPage({ searchParams }: PageProps<"/buyers">)
     getDirectoryCountryOptions(requested.countries),
   ]);
   if (!directory) notFound();
-  // What was applied: the clamped page, and no ranking when `rank` was not the viewer's asset.
   const filters: BuyerFilters = { ...requested, page: directory.page, rank: directory.rankedFor?.id ?? null };
 
   const first = (directory.page - 1) * BUYERS_PAGE_SIZE + 1;
@@ -104,7 +101,6 @@ export default async function BuyersPage({ searchParams }: PageProps<"/buyers">)
   );
 }
 
-/** Sellers rank buyers against a published asset; with none yet, say how to get one. */
 function RankControl({ directory }: { directory: BuyerDirectoryPage }) {
   if (directory.rankOptions && directory.rankOptions.length > 0) {
     return <RankSelect options={directory.rankOptions} />;

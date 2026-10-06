@@ -15,9 +15,6 @@ const readStateSelect = {
   sellerLastRead: true,
 } as const;
 
-// ─── Reads ───────────────────────────────────────────────────────────────────────────────
-
-/** The user's conversations, most recent activity first, each with its newest message. */
 export async function findConversationsFor(userId: string, take: number) {
   return db.conversation.findMany({
     where: participantWhere(userId),
@@ -33,10 +30,6 @@ export async function findConversationsFor(userId: string, take: number) {
   });
 }
 
-/**
- * Conversations with a message newer than the user's read marker. One COUNT: Prisma field
- * references compare two columns of the same row in SQL.
- */
 export async function countUnreadConversations(userId: string): Promise<number> {
   const { fields } = db.conversation;
   return db.conversation.count({
@@ -49,10 +42,6 @@ export async function countUnreadConversations(userId: string): Promise<number> 
   });
 }
 
-/**
- * One thread, only if the user takes part in it, with its newest `messageLimit + 1` messages
- * (newest first; the extra one tells the caller that older messages exist).
- */
 export async function findConversationFor(conversationId: string, userId: string, messageLimit: number) {
   return db.conversation.findFirst({
     where: { AND: [{ id: conversationId }, participantWhere(userId)] },
@@ -72,7 +61,6 @@ export async function findConversationFor(conversationId: string, userId: string
   });
 }
 
-/** Who takes part and whether they may still write. For replies and read markers. */
 export async function findConversationParticipants(conversationId: string) {
   return db.conversation.findUnique({
     where: { id: conversationId },
@@ -87,7 +75,6 @@ export async function findConversationParticipants(conversationId: string) {
   });
 }
 
-/** What starting a conversation about an asset needs to check. */
 export async function findAssetForContact(assetId: string) {
   return db.asset.findUnique({
     where: { id: assetId },
@@ -95,7 +82,6 @@ export async function findAssetForContact(assetId: string) {
   });
 }
 
-/** What a seller contacting a buyer needs to check. */
 export async function findBuyerForContact(buyerId: string) {
   return db.user.findUnique({
     where: { id: buyerId },
@@ -103,7 +89,6 @@ export async function findBuyerForContact(buyerId: string) {
   });
 }
 
-/** Threads between one buyer and one seller (one per asset), most recent first. */
 export async function findThreadsBetween(buyerId: string, sellerId: string) {
   return db.conversation.findMany({
     where: { buyerId, sellerId },
@@ -112,14 +97,10 @@ export async function findThreadsBetween(buyerId: string, sellerId: string) {
   });
 }
 
-// ─── Writes ──────────────────────────────────────────────────────────────────────────────
-
-/** The sender has read everything up to their own message. */
 function readBy(side: ConversationSide, at: Date) {
   return side === "BUYER" ? { buyerLastRead: at } : { sellerLastRead: at };
 }
 
-/** Appends a reply and moves the thread to the top of both lists. */
 export async function insertMessage(
   conversationId: string,
   sender: { id: string; side: ConversationSide },
@@ -140,21 +121,12 @@ interface FirstMessage {
   assetId: string;
   buyerId: string;
   sellerId: string;
-  /** Who writes this message; becomes `initiatedBy` if the thread is new. */
   side: ConversationSide;
   body: string;
 }
 
 const UPSERT_ATTEMPTS = 2;
 
-/**
- * Opens the buyer's thread about the asset, or reuses the existing one (one thread per buyer
- * per asset, enforced by the unique index), and appends the message. Returns the thread id.
- *
- * Two first messages racing each other can both miss the existing row; the loser's insert
- * fails with P2002, which aborts its transaction, so the whole transaction runs once more
- * and then finds the winner's thread.
- */
 export async function upsertConversationWithMessage(input: FirstMessage): Promise<string> {
   const { assetId, buyerId, sellerId, side, body } = input;
   const senderId = side === "BUYER" ? buyerId : sellerId;
@@ -181,10 +153,6 @@ export async function upsertConversationWithMessage(input: FirstMessage): Promis
   }
 }
 
-/**
- * Moves one side's read marker forward to `seenAt`, never backward, and only for the user on
- * that side. True if it moved.
- */
 export async function markReadUpTo(
   conversationId: string,
   reader: { id: string; side: ConversationSide },

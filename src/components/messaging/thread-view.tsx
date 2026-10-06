@@ -14,13 +14,10 @@ interface ThreadViewProps {
   counterpartName: string;
   messages: ThreadMessage[];
   hasEarlier: boolean;
-  /** Set when the counterpart is suspended or removed: banner + disabled composer. */
   blockedReason: string | null;
 }
 
-/** S2 right pane body: the messages, newest at the bottom, and the reply box. */
 export function ThreadView({ conversationId, counterpartName, messages, hasEarlier, blockedReason }: ThreadViewProps) {
-  // A sent message shows at once; the server's re-render replaces it with the stored one.
   const [shown, addOptimistic] = useOptimistic(messages, (current: ThreadMessage[], added: ThreadMessage) => [
     ...current,
     added,
@@ -41,7 +38,6 @@ export function ThreadView({ conversationId, counterpartName, messages, hasEarli
         </div>
       )}
 
-      {/* column-reverse: the browser starts scrolled to the bottom and stays there as messages arrive. */}
       <div className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-4 py-4">
         <ol aria-label="Messages" className="flex flex-col gap-3">
           {hasEarlier && (

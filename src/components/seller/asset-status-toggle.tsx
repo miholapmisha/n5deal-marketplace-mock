@@ -11,11 +11,9 @@ const initialState: AssetActionState = {};
 
 interface AssetStatusToggleProps {
   assetId: string;
-  /** Which way the button goes: a draft is published, a published asset is unpublished. */
   mode: "publish" | "unpublish";
 }
 
-/** S6 row action: Publish / Unpublish with the service's error shown under it. */
 export function AssetStatusToggle({ assetId, mode }: AssetStatusToggleProps) {
   const action = mode === "publish" ? publishAssetAction : unpublishAssetAction;
   const [state, formAction] = useActionState(action, initialState);

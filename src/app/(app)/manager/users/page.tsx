@@ -29,8 +29,6 @@ const TABS: { role: ParticipantRole; label: string; noun: [string, string] }[] =
   { role: "SELLER", label: "Sellers", noun: ["seller", "sellers"] },
 ];
 
-// S11. Buyers and sellers with their status and activity; suspend, reinstate, or remove.
-// Managers are not listed: they cannot be moderated (SPEC §4.3).
 export default async function ParticipantsPage({ searchParams }: PageProps<"/manager/users">) {
   await requireRole("MANAGER");
   const requested = parseParticipantFilters(await searchParams);
@@ -78,7 +76,6 @@ export default async function ParticipantsPage({ searchParams }: PageProps<"/man
   );
 }
 
-/** Pill tabs like the catalog's; switching keeps the search and status filter. */
 function RoleTabs({ filters, counts }: { filters: Filters; counts: ParticipantPage["counts"] }) {
   return (
     <nav aria-label="Participant type">

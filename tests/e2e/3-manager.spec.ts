@@ -2,13 +2,8 @@ import { type Browser, type BrowserContext, expect, type Page, test } from "@pla
 
 import { loginAs, SEED } from "./support";
 
-// SPEC §10 flow 3: suspend the seller → their assets disappear from the catalog → the
-// buyer's thread shows the banner. Also checks the two promises behind it (SPEC §4.3): the
-// seller's session ends at once, and reinstating restores everything.
-
 const LITHUANIA_CATALOG = "/assets?country=LT";
 
-/** One browser context per person, so each has their own session cookie. */
 const contexts: BrowserContext[] = [];
 
 async function newPage(browser: Browser): Promise<Page> {

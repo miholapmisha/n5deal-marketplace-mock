@@ -8,14 +8,11 @@ import type { RankOption } from "@/server/buyers/buyer.service";
 const NO_RANKING = "";
 
 interface RankSelectProps {
-  /** The seller's published assets (never empty: the page explains that case instead). */
   options: RankOption[];
 }
 
-/** "Rank for: [asset ▾]": sorts the directory by how well each buyer fits the asset. */
 export function RankSelect({ options }: RankSelectProps) {
   const { filters, apply } = useDirectoryNavigation();
-  // A `rank` that is not one of these assets was ignored by the server: show "no ranking".
   const value = options.some((option) => option.id === filters.rank) ? (filters.rank ?? NO_RANKING) : NO_RANKING;
 
   return (

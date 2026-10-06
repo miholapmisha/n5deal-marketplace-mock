@@ -11,8 +11,6 @@ import { CATALOG_PATH, catalogHref, DEFAULT_CATALOG_FILTERS } from "@/lib/catalo
 import { buyerProfileSchema } from "@/server/buyers/buyer.schema";
 import { saveOwnBuyerProfile } from "@/server/buyers/buyer.service";
 
-// Entry point for the profile form (S5): parse → service (role check) → revalidate.
-
 export async function saveProfileAction(
   _prev: ProfileFormState,
   values: BuyerProfileFormValues,
@@ -26,10 +24,8 @@ export async function saveProfileAction(
   if (!result.ok) return { error: result.error };
 
   revalidatePath("/profile");
-  // The buyer directory (S8) and match scores read the profile.
   revalidatePath("/buyers");
   revalidatePath(CATALOG_PATH);
-  // The first save ends onboarding: on to the catalog, best matches first (SPEC §5 S5).
   if (result.firstSave) redirect(catalogHref({ ...DEFAULT_CATALOG_FILTERS, sort: "best-match" }));
   return { savedAt: Date.now() };
 }

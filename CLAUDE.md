@@ -50,6 +50,11 @@ Theme tokens (sampled from n5deal.com) live in `src/app/globals.css`: `primary` 
 `success` #059669, `row` / `row-border` for label–value rows, `pill` for active tabs,
 `shadow-card`. Use these tokens, not raw hex values.
 
+## Code style
+
+No comments in code (TS/TSX, Prisma schema, CSS): no JSDoc, file headers, or SPEC
+references. Put the reasoning in names, `README.md`, or `SPEC.md`.
+
 ## Architecture rules (SPEC §6)
 
 - `src/app/` holds routes only. Business logic lives in `src/server/`; every file there

@@ -20,9 +20,6 @@ import { type AuthResult, authenticate, registerUser } from "@/server/auth/auth.
 import { endSession, startSession } from "@/server/auth/session";
 import { setSuspendedNotice } from "@/server/auth/suspended-notice";
 
-// Entry points for the auth forms: parse → service → cookie → redirect. Server actions get
-// Next.js's built-in CSRF check (Origin must match Host) on top of SameSite=Lax cookies.
-
 const INVALID_CREDENTIALS = "Invalid email or password.";
 
 function field(formData: FormData, name: string): string {
@@ -30,14 +27,12 @@ function field(formData: FormData, name: string): string {
   return typeof value === "string" ? value : "";
 }
 
-/** Suspended → /suspended with the reason; otherwise a fresh session and the landing page. */
 async function enter(result: Exclude<AuthResult, { kind: "invalid" }>, next: string | null): Promise<never> {
   if (result.kind === "suspended") {
     await setSuspendedNotice(result.reason);
     redirect("/suspended");
   }
   await startSession(result.user.id);
-  // The header in the root layout shows who is logged in; re-render it everywhere.
   revalidatePath("/", "layout");
   redirect(next ?? ROLE_HOME[result.user.role]);
 }
@@ -56,7 +51,6 @@ export async function demoLoginAction(_prev: DemoLoginFormState, formData: FormD
   const parsed = demoLoginSchema.safeParse({ role: formData.get("role") });
   if (!parsed.success) return { error: "Unknown demo account." };
 
-  // Same path as a typed login, so a suspended demo account behaves like any other.
   const result = await authenticate(DEMO_ACCOUNTS[parsed.data.role], DEMO_PASSWORD);
   if (result.kind === "invalid") return { error: "This demo account is unavailable right now." };
   return enter(result, safeNextPath(formData.get("next")));

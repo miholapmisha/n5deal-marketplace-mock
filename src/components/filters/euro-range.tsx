@@ -10,25 +10,20 @@ function euroText(value: number | null): string {
 }
 
 interface EuroRangeProps {
-  /** Section heading, e.g. "Price (€)". Also names the inputs ("Minimum price in euros"). */
   legend: string;
-  /** The noun for the inputs' accessible names: "price", "ticket". */
   noun: string;
   min: number | null;
   max: number | null;
   hint: string;
   submitLabel: string;
-  /** Called with valid bounds (swapped if reversed, €0 minimum → null) when they changed. */
   onApply: (min: number | null, max: number | null) => void;
 }
 
-/** Two typed euro bounds, applied together on submit (typing must not navigate per keystroke). */
 export function EuroRange({ legend, noun, min, max, hint, submitLabel, onApply }: EuroRangeProps) {
   const id = useId();
   const [low, setLow] = useState(euroText(min));
   const [high, setHigh] = useState(euroText(max));
   const [error, setError] = useState<string | null>(null);
-  // Follow the URL when the range changes elsewhere (a removed chip, "Reset all filters").
   const urlRange = `${min}:${max}`;
   const [syncedRange, setSyncedRange] = useState(urlRange);
   if (urlRange !== syncedRange) {
@@ -38,7 +33,6 @@ export function EuroRange({ legend, noun, min, max, hint, submitLabel, onApply }
     setError(null);
   }
 
-  /** Validates both bounds and applies them if they differ from the URL. */
   function commit() {
     const lowValue = low.trim() ? parsePriceInput(low) : null;
     const highValue = high.trim() ? parsePriceInput(high) : null;
@@ -48,7 +42,6 @@ export function EuroRange({ legend, noun, min, max, hint, submitLabel, onApply }
     }
     setError(null);
     const reversed = lowValue !== null && highValue !== null && lowValue > highValue;
-    // €0 as a minimum is no bound.
     const nextMin = (reversed ? highValue : lowValue) || null;
     const nextMax = reversed ? lowValue : highValue;
     if (nextMin !== min || nextMax !== max) onApply(nextMin, nextMax);
@@ -59,8 +52,6 @@ export function EuroRange({ legend, noun, min, max, hint, submitLabel, onApply }
     commit();
   }
 
-  // Leaving the fields also applies them, so closing the mobile drawer (or clicking anywhere
-  // else) never silently drops a typed value.
   function handleBlur(event: FocusEvent<HTMLFormElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) commit();
   }

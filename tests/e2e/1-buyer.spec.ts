@@ -2,9 +2,6 @@ import { expect, test } from "@playwright/test";
 
 import { loginAs, SEED } from "./support";
 
-// SPEC §10 flow 1: demo login → catalog sorted by best match → asset → contact seller →
-// message appears after refresh.
-
 test("buyer contacts a seller from the best-match catalog", async ({ page }) => {
   await loginAs(page, "buyer");
 

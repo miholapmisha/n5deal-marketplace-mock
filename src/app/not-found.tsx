@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   title: "Page not found",
 };
 
-/** Unknown URLs and anything `notFound()` hides, e.g. an asset this viewer may not see. */
 export default function NotFound() {
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-16">

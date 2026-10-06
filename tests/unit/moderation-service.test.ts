@@ -10,9 +10,6 @@ import {
 } from "@/server/moderation/moderation.repo";
 import { moderateAsset, moderateUser } from "@/server/moderation/moderation.service";
 
-// SPEC §4.3, §9: the service is where moderation rules cannot be skipped. The repo and the
-// session are mocked, so these tests check decisions, not SQL.
-
 vi.mock("@/server/auth/session", () => ({ getCurrentUser: vi.fn() }));
 vi.mock("@/server/moderation/moderation.repo", () => ({
   findUserForModeration: vi.fn(),

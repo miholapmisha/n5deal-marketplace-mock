@@ -10,7 +10,6 @@ import { ASSET_TYPE_LABELS, BUSINESS_STATUS_LABELS, CATEGORY_LABELS } from "@/li
 
 const MAX_BENEFITS = 3;
 
-/** Only what the card renders, so the asset form's live preview (S7) can reuse it. */
 export interface AssetCardAsset {
   slug: string;
   title: string;
@@ -26,11 +25,8 @@ export interface AssetCardAsset {
 
 interface AssetCardProps {
   asset: AssetCardAsset;
-  /** Hides the "View asset" link, e.g. in a preview of an unsaved asset. */
   preview?: boolean;
-  /** Country name computed on the server, for client renders (see COUNTRY_OPTIONS). */
   countryLabel?: string;
-  /** The viewing buyer's match score; shown as a badge when set. */
   match?: number | null;
 }
 

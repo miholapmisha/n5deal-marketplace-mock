@@ -9,9 +9,6 @@ import { Button } from "@/components/ui/button";
 import type { AssetModeration, UserModeration } from "@/lib/moderation";
 import { moderateAssetAction, moderateUserAction } from "@/server/moderation/moderation.actions";
 
-// One button per moderation action, each opening the reason dialog with copy that says
-// exactly what will happen (SPEC §4.3). The page decides which actions apply.
-
 interface ActionCopy {
   label: string;
   icon: LucideIcon;
@@ -88,12 +85,9 @@ const USER_COPY: Record<UserModeration, ActionCopy> = {
 
 const TONE_VARIANTS = { neutral: "outline", positive: "secondary", danger: "destructive" } as const;
 
-/** Spreads the rest onto the button: `DialogTrigger asChild` passes its handlers and ref. */
 interface TriggerProps extends ComponentProps<typeof Button> {
   copy: ActionCopy;
-  /** Full-width (asset detail sidebar) or compact (table rows). */
   block: boolean;
-  /** Names the target for screen readers when several rows have the same button. */
   targetName: string;
 }
 
@@ -139,10 +133,8 @@ export function AssetModerationButton({ assetId, assetTitle, action, block = fal
 
 interface UserModerationButtonProps {
   userId: string;
-  /** Company first, like everywhere else on the platform. */
   displayName: string;
   action: UserModeration;
-  /** Removal only: what the manager must type to confirm. */
   confirmText: string;
 }
 

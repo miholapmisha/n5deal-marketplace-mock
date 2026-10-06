@@ -1,5 +1,3 @@
-// Data model — mirrors SPEC.md §3. Change SPEC.md first, then this file.
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -34,7 +32,6 @@ enum BusinessStatus {
   LICENSE_ONLY
 }
 
-/// HIDDEN is set by a manager; DRAFT/PUBLISHED by the owner.
 enum AssetStatus {
   DRAFT
   PUBLISHED
@@ -96,7 +93,6 @@ model User {
 }
 
 model Session {
-  /// SHA-256 of the cookie token, never the raw token.
   id        String   @id
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -113,11 +109,9 @@ model BuyerProfile {
   ticketMinEur Int?
   ticketMaxEur Int?
   categories   Category[]
-  /// ISO 3166-1 alpha-2; empty = any.
   countries    String[]
   statusPref   StatusPref @default(ANY)
   timeline     Timeline   @default(EXPLORING)
-  /// Investment / acquisition interests, free text.
   thesis       String
   isVisible    Boolean    @default(true)
   updatedAt    DateTime   @updatedAt
@@ -125,29 +119,22 @@ model BuyerProfile {
 
 model Asset {
   id             String         @id @default(cuid())
-  /// e.g. "malta-emi-751"
   slug           String         @unique
   sellerId       String
   seller         User           @relation(fields: [sellerId], references: [id])
   title          String
   category       Category
   businessStatus BusinessStatus
-  /// ISO 3166-1 alpha-2.
   country        String
-  /// e.g. "MFSA"
   regulator      String?
-  /// e.g. "EMI", "PI", "CASP", "Banking"
   licenseType    String
   otherLicenses  String[]
   yearOfIssue    Int?
   employees      Int?
-  /// Whole euros; null = price on request.
   priceEur       Int?
-  /// Tag chips, e.g. "MiCA registered".
   benefits       String[]
   description    String
   status         AssetStatus    @default(DRAFT)
-  /// Set when a manager hides or removes the asset.
   statusReason   String?
   publishedAt    DateTime?
   createdAt      DateTime       @default(now())
@@ -169,7 +156,6 @@ model Conversation {
   buyer          User      @relation("ConversationBuyer", fields: [buyerId], references: [id])
   sellerId       String
   seller         User      @relation("ConversationSeller", fields: [sellerId], references: [id])
-  /// BUYER or SELLER.
   initiatedBy    Role
   buyerLastRead  DateTime?
   sellerLastRead DateTime?
@@ -177,7 +163,6 @@ model Conversation {
   createdAt      DateTime  @default(now())
   messages       Message[]
 
-  /// One thread per buyer per asset.
   @@unique([assetId, buyerId])
   @@index([buyerId, lastMessageAt])
   @@index([sellerId, lastMessageAt])
@@ -189,7 +174,6 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   senderId       String
   sender         User         @relation(fields: [senderId], references: [id])
-  /// 1–2000 chars, enforced by Zod.
   body           String
   createdAt      DateTime     @default(now())
 
@@ -211,11 +195,8 @@ model ModerationLog {
   @@index([createdAt])
 }
 
-/// AI search rate limit (SPEC §7): searches per caller per fixed one-hour window.
 model AiSearchUsage {
-  /// "user:<id>" or "ip:<SHA-256 of the client IP>".
   key         String
-  /// Start of the hour the searches were made in.
   windowStart DateTime
   count       Int      @default(0)
 

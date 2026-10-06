@@ -44,7 +44,6 @@ function CardButton({ title, description, Icon, email }: Omit<DemoCard, "role"> 
   );
 }
 
-/** SPEC §5 S1: one click per role, no typing. Each card is its own form (own pending state). */
 export function DemoLoginCards({ next }: { next: string | null }) {
   const [state, formAction] = useActionState(demoLoginAction, initialState);
 

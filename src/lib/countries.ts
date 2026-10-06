@@ -1,7 +1,5 @@
 import { countryName } from "@/lib/format";
 
-// ISO 3166-1 alpha-2, officially assigned codes only (249). Intl.DisplayNames alone is not
-// enough to validate: it also names "EU", "UN", "UK", and retired codes such as "YU".
 const ISO_ALPHA2 =
   "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ " +
   "BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM " +
@@ -17,16 +15,10 @@ export const COUNTRY_CODES: readonly string[] = ISO_ALPHA2.split(" ");
 
 const COUNTRY_CODE_SET: ReadonlySet<string> = new Set(COUNTRY_CODES);
 
-/** Exact, upper-case match: "MT" → true; "mt", "EU", "XX" → false. */
 export function isCountryCode(value: string): boolean {
   return COUNTRY_CODE_SET.has(value);
 }
 
-/**
- * Codes whose English name starts with the word or contains it as a whole word, so a
- * keyword search for "malta", "czech", or "kingdom" finds the country. A bare substring
- * match would turn the search "emi" into "United Arab Emirates".
- */
 export function countryCodesMatching(word: string): string[] {
   const needle = word.trim().toLowerCase();
   if (needle.length < 3) return [];
@@ -41,12 +33,6 @@ export interface CountryOption {
   label: string;
 }
 
-/**
- * Every ISO country as a select option, sorted by English name. Build it on the server and
- * pass it to client components: browsers and Node ship different ICU data ("Falkland
- * Islands" vs "Falkland Islands (Islas Malvinas)"), so names computed on both sides would
- * break hydration.
- */
 export const COUNTRY_OPTIONS: readonly CountryOption[] = COUNTRY_CODES.map((code) => ({
   value: code,
   label: countryName(code),

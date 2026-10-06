@@ -7,7 +7,6 @@ import { cn } from "cn";
 
 import { conversationPath } from "@/lib/messaging";
 
-/** A row in the conversation list, highlighted while its thread is open. */
 export function ConversationLink({ id, children }: { id: string; children: ReactNode }) {
   const isOpen = useSelectedLayoutSegment() === id;
 

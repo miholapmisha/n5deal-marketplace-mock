@@ -38,9 +38,6 @@ import {
   userModerationBlock,
 } from "@/server/policies/moderation-rules";
 
-// SPEC §4.3, §5 S10–S11. Every function checks that the viewer is a manager itself: pages
-// also call requireRole(), but the service is the one place the rule cannot be skipped.
-
 const SESSION_EXPIRED = "Your session has expired. Log in again.";
 const MANAGERS_ONLY = "Only platform managers can moderate.";
 const CHANGED = "This changed in the meantime. Refresh the page and try again.";
@@ -57,7 +54,6 @@ function pageCountFor(total: number): number {
 
 const skipFor = (page: number) => (page - 1) * MANAGER_PAGE_SIZE;
 
-/** A page past the end (stale link) is clamped to the last one, at the cost of a refetch. */
 async function clampedPage<T>(
   requested: number,
   total: number,
@@ -73,13 +69,9 @@ export interface FilterOption {
   label: string;
 }
 
-// ─── Overview (S10) ──────────────────────────────────────────────────────────────────────
-
 export interface OverviewStats {
-  /** Buyer and seller accounts that are not removed. */
   buyers: number;
   sellers: number;
-  /** Published assets of active sellers: what the public catalog shows. */
   liveAssets: number;
   hiddenAssets: number;
   suspendedUsers: number;
@@ -107,10 +99,6 @@ export interface ManagerAssetFilterOptions {
 
 const byLabel = (a: FilterOption, b: FilterOption) => a.label.localeCompare(b.label, "en");
 
-/**
- * Countries that occur on any asset (plus a selected one that no longer does, so a stale
- * link's filter can still be seen and cleared) and every seller account.
- */
 export async function getManagerAssetFilterOptions(selectedCountry: string | null): Promise<ManagerAssetFilterOptions> {
   if (!(await currentManager())) return { countries: [], sellers: [] };
   const [countries, sellers] = await Promise.all([findAssetCountries(), findSellers()]);
@@ -132,7 +120,6 @@ type ManagerAssetRecord = Awaited<ReturnType<typeof findManagerAssets>>[number];
 
 export interface ManagerAssetRow extends Omit<ManagerAssetRecord, "seller"> {
   seller: { id: string; displayName: string; status: UserStatus };
-  /** The moderation actions that apply to the asset's current status. */
   actions: AssetModeration[];
 }
 
@@ -151,7 +138,6 @@ function toAssetRow({ seller, ...asset }: ManagerAssetRecord): ManagerAssetRow {
   };
 }
 
-/** S10 assets table: every status, newest first, one page. */
 export async function listManagerAssets(filters: ManagerAssetFilters): Promise<ManagerAssetPage | null> {
   if (!(await currentManager())) return null;
   const fetchPage = (page: number) => findManagerAssets(filters, skipFor(page), MANAGER_PAGE_SIZE);
@@ -170,11 +156,9 @@ export interface ModerationLogEntry {
   reason: string;
   createdAt: Date;
   managerName: string;
-  /** Null only if a row was written without a target, which the service never does. */
   target: ModerationTarget | null;
 }
 
-/** S10: the newest log entries. Removed users appear as "Removed user". */
 export async function listRecentModeration(): Promise<ModerationLogEntry[]> {
   if (!(await currentManager())) return [];
   const rows = await findRecentModerationLogs(RECENT_LOG_ENTRIES);
@@ -188,8 +172,6 @@ export async function listRecentModeration(): Promise<ModerationLogEntry[]> {
         : null,
   }));
 }
-
-// ─── Participants (S11) ──────────────────────────────────────────────────────────────────
 
 export type ParticipantSummary =
   | {
@@ -209,7 +191,6 @@ export interface ParticipantRow {
   conversations: number;
   summary: ParticipantSummary;
   actions: UserModeration[];
-  /** What the manager must type to confirm a removal. */
   removalConfirmation: string;
 }
 
@@ -218,7 +199,6 @@ export interface ParticipantPage {
   total: number;
   page: number;
   pageCount: number;
-  /** Matches per tab, with the search and status filter applied. */
   counts: Record<ParticipantRole, number>;
 }
 
@@ -247,7 +227,6 @@ function toParticipantRow(
   };
 }
 
-/** S11: buyers or sellers (never managers), newest accounts first, one page. */
 export async function listParticipants(filters: ParticipantFilters): Promise<ParticipantPage | null> {
   if (!(await currentManager())) return null;
   const fetchPage = (page: number) => findParticipants(filters, skipFor(page), MANAGER_PAGE_SIZE);
@@ -271,8 +250,6 @@ export async function listParticipants(filters: ParticipantFilters): Promise<Par
   };
 }
 
-// ─── Moderation actions ──────────────────────────────────────────────────────────────────
-
 export type ModerationResult = { ok: true } | { ok: false; error: string; field?: "confirmation" };
 
 async function managerOrError(): Promise<{ manager: CurrentUser } | { ok: false; error: string }> {
@@ -282,7 +259,6 @@ async function managerOrError(): Promise<{ manager: CurrentUser } | { ok: false;
   return { manager: user };
 }
 
-/** Suspend, reinstate, or remove a buyer or seller (SPEC §4.3). */
 export async function moderateUser(input: ModerateUserInput): Promise<ModerationResult> {
   const check = await managerOrError();
   if (!("manager" in check)) return check;
@@ -306,7 +282,6 @@ export async function moderateUser(input: ModerateUserInput): Promise<Moderation
   return changed ? { ok: true } : { ok: false, error: CHANGED };
 }
 
-/** Hide, unhide, or remove any asset (SPEC §4.3). Visibility for buyers follows at query time. */
 export async function moderateAsset(input: ModerateAssetInput): Promise<ModerationResult> {
   const check = await managerOrError();
   if (!("manager" in check)) return check;
@@ -316,7 +291,6 @@ export async function moderateAsset(input: ModerateAssetInput): Promise<Moderati
   const transition = ASSET_TRANSITIONS[input.action];
   if (!transition.from.includes(asset.status)) return { ok: false, error: transition.refusal };
 
-  // Unhiding restores the listing where it was: the original publish date, no reason.
   const data =
     input.action === "UNHIDE_ASSET"
       ? { status: transition.to, statusReason: null, publishedAt: asset.publishedAt ?? new Date() }

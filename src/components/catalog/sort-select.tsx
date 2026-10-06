@@ -12,7 +12,6 @@ function isCatalogSort(value: string): value is CatalogSort {
 }
 
 interface SortSelectProps {
-  /** Best match is for buyers; one without a profile sees it disabled, with a hint. */
   bestMatch: BestMatchAvailability;
 }
 

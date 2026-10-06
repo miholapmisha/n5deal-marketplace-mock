@@ -8,11 +8,8 @@ import {
   matchSignals,
 } from "@/server/matching/match-score";
 
-// SPEC §4.4: category 40 · country 25 · price vs ticket 25 · business status 10.
-
 const asset: MatchAsset = { category: "EMI", country: "LT", priceEur: 1_000_000, businessStatus: "ACTIVE" };
 
-/** A buyer with no preferences at all. */
 const openProfile: MatchProfile = {
   categories: [],
   countries: [],
@@ -101,10 +98,8 @@ describe("matchScore price signal", () => {
   });
 
   it("checks the 20% band exactly where floats would round", () => {
-    // 0.8 × 333,333 = 266,666.4: 266,667 is inside the band, 266,666 is not.
     expect(pricePoints(266_667, { ticketMinEur: 333_333 })).toBe(10);
     expect(pricePoints(266_666, { ticketMinEur: 333_333 })).toBe(0);
-    // 1.2 × 333,333 = 399,999.6: 399,999 is inside the band, 400,000 is not.
     expect(pricePoints(399_999, { ticketMaxEur: 333_333 })).toBe(10);
     expect(pricePoints(400_000, { ticketMaxEur: 333_333 })).toBe(0);
   });

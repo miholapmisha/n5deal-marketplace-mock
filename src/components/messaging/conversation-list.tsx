@@ -15,7 +15,6 @@ interface ConversationListProps {
   role: "BUYER" | "SELLER";
 }
 
-/** S2 left pane. */
 export function ConversationList({ conversations, role }: ConversationListProps) {
   const unread = conversations.filter((conversation) => conversation.unread).length;
 
@@ -76,7 +75,6 @@ function ConversationRow({ conversation }: { conversation: ConversationListItem 
   );
 }
 
-/** SPEC §5 S2: buyers are pointed to the catalog, sellers to the buyer directory. */
 function EmptyList({ role }: { role: "BUYER" | "SELLER" }) {
   const cta =
     role === "BUYER"

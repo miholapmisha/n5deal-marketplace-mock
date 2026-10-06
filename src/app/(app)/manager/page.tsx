@@ -29,8 +29,6 @@ export const metadata: Metadata = {
   title: "Overview",
 };
 
-// S10. The manager's home: platform numbers, every asset in every status with moderation
-// actions, and the latest moderation log. Table filters live in the URL.
 export default async function ManagerOverviewPage({ searchParams }: PageProps<"/manager">) {
   await requireRole("MANAGER");
   const requested = parseManagerAssetFilters(await searchParams);
@@ -42,7 +40,6 @@ export default async function ManagerOverviewPage({ searchParams }: PageProps<"/
   ]);
   if (!stats || !requestedAssets) notFound();
 
-  // An unknown seller in the URL is ignored (like an unknown `rank` on S8), not an empty table.
   const sellerKnown = requested.seller === null || options.sellers.some((seller) => seller.value === requested.seller);
   const assets = sellerKnown ? requestedAssets : await listManagerAssets({ ...requested, seller: null });
   if (!assets) notFound();

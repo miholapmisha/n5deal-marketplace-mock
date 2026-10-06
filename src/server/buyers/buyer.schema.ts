@@ -9,10 +9,8 @@ import { optionalEuros } from "@/server/form-fields";
 
 const TICKET_KEYS: ReadonlySet<PropertyKey | undefined> = new Set(["ticketMin", "ticketMax"]);
 
-/** Removes repeats while keeping the order the buyer picked. */
 const unique = <T>(items: T[]): T[] => [...new Set(items)];
 
-/** The profile form's raw values → typed profile fields (SPEC §5 S5). */
 export const buyerProfileSchema = z
   .object({
     buyerType: z.enum(BuyerType, { error: "Choose what kind of buyer you are." }),

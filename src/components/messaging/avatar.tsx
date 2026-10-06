@@ -2,7 +2,6 @@ import { cn } from "cn";
 
 import { initials } from "@/lib/messaging";
 
-/** Initials in a circle: there are no profile pictures (no uploads, SPEC §1.8). */
 export function Avatar({ name, className }: { name: string; className?: string }) {
   return (
     <span

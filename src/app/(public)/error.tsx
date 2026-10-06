@@ -7,11 +7,9 @@ import { Button } from "@/components/ui/button";
 
 interface PublicErrorProps {
   error: Error & { digest?: string };
-  /** Re-fetches and re-renders the segment (stable since Next.js 16.3; `reset` does not re-fetch). */
   retry: () => void;
 }
 
-/** Error boundary for the public pages. Server errors arrive here with only a digest. */
 export default function PublicError({ error, retry }: PublicErrorProps) {
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-3 rounded-2xl border border-border bg-card p-10 text-center shadow-card">

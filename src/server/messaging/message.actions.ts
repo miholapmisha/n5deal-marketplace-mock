@@ -20,21 +20,13 @@ import {
   startConversation,
 } from "@/server/messaging/message.service";
 
-// Entry points for the composers (S2, S4 → S2, S9): parse → service (participants, statuses)
-// → revalidate. Payloads are typed for the client and parsed as untrusted input here.
-
 const STALE_FORM = "This conversation is out of date. Refresh the page and try again.";
 
-/** The message's own error ("Write a message first."), or a generic one for tampered IDs. */
 function invalidInput(error: z.ZodError): MessageActionResult {
   const bodyIssue = error.issues.find((issue) => issue.path[0] === "body");
   return { error: bodyIssue?.message ?? STALE_FORM };
 }
 
-/**
- * The conversation list lives in the messages layout, so revalidate the layout: the action's
- * response then re-renders the list, the open thread, and the header's unread count.
- */
 function revalidateMessages(): void {
   revalidatePath(MESSAGES_PATH, "layout");
 }
@@ -60,7 +52,6 @@ export interface StartConversationPayload {
   body: string;
 }
 
-/** Buyer's first message about an asset. Redirects to the thread on success. */
 export async function startConversationAction(payload: StartConversationPayload): Promise<MessageActionResult> {
   const parsed = startConversationSchema.safeParse(payload);
   if (!parsed.success) return invalidInput(parsed.error);
@@ -78,7 +69,6 @@ export interface ContactBuyerPayload {
   body: string;
 }
 
-/** Seller's first message to a buyer. Redirects to the thread on success. */
 export async function contactBuyerAction(payload: ContactBuyerPayload): Promise<MessageActionResult> {
   const parsed = contactBuyerSchema.safeParse(payload);
   if (!parsed.success) return invalidInput(parsed.error);
@@ -92,11 +82,9 @@ export async function contactBuyerAction(payload: ContactBuyerPayload): Promise<
 
 export interface MarkReadPayload {
   conversationId: string;
-  /** ISO timestamp of the newest message the thread showed. */
   seenAt: string;
 }
 
-/** Fired by the thread once it is on screen. Re-renders only when a marker moved. */
 export async function markConversationReadAction(payload: MarkReadPayload): Promise<void> {
   const parsed = markReadSchema.safeParse(payload);
   if (!parsed.success) return;
