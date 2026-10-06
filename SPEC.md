@@ -600,7 +600,11 @@ Deterministic: same data on every run, idempotent.
      appears after refresh.
   2. Seller: publish an asset → it appears in the catalog → rank buyers → contact a buyer.
   3. Manager: suspend the seller → their assets disappear from the catalog → the buyer's
-     thread shows the banner.
+     thread shows the banner. (The test also checks that the seller's open session ends
+     and that reinstating brings the listings back.)
+- Tests live in `tests/unit/` and `tests/e2e/`, outside `src/`. The flows share one
+  database and run in order on one worker; the run reseeds the database before and after
+  itself and refuses any host but `localhost`, because the seed truncates every table.
 
 ---
 

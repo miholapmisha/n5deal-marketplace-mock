@@ -16,10 +16,14 @@ npm run db:up       # local Postgres 17 in Docker, port 5433 (container n5deal_p
 npm run db:migrate  # prisma migrate dev — after editing prisma/schema.prisma
 npm run db:seed     # TRUNCATES all tables, then re-inserts deterministic demo data
 npx prisma generate # regenerate the client (migrate dev does NOT do this in Prisma 7)
+npm test            # Vitest unit tests (tests/unit), no DB or API key needed
+npm run test:e2e    # Playwright flows (tests/e2e); RESEEDS the local DB before and after
 ```
 
 Port 5432 belongs to another project's container (`orchestrator_postgres`) — never touch
-it. Later milestones add `npm test` (Vitest) and `npx playwright test` (M9).
+it. The e2e run reuses a dev server already on :3000 and refuses to seed a non-local host.
+Unit tests import `src/server` modules directly: Vitest aliases `server-only` to its no-op
+build (`vitest.config.mts`).
 
 ## Stack
 
@@ -99,7 +103,7 @@ Each file has these sections:
 - [x] M6 — Buyer directory + match score (S8, Rank for, S3 best match, S9 fit)
 - [x] M7 — Manager + moderation (S10, S11, hide/remove on S4)
 - [x] M8 — AI search + fallback (Gemini 3.5 Flash-Lite, DB rate limit)
-- [ ] M9 — Tests, README final, polish
+- [x] M9 — Tests, README final, polish
 
 ## Deployment
 

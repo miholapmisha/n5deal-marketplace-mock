@@ -8,8 +8,9 @@ Visual reference: [n5deal.com/all-listing](https://n5deal.com/all-listing). The 
 spec lives in [`SPEC.md`](./SPEC.md); it is the source of truth and changes before the code
 does.
 
-> **Status:** M2 — authentication (sessions, register/login, one-click demo login, role
-> guards, `/suspended`). Sections marked _TBD_ are filled in by later milestones.
+> **Status:** complete (milestones M0–M9 in [`SPEC.md`](./SPEC.md) §12): catalog with URL
+> filters and AI search, asset publishing, buyer directory with match ranking, messaging,
+> moderation, unit tests, and end-to-end tests for the three main flows.
 
 ---
 
@@ -50,6 +51,8 @@ AI search is optional: put a Gemini key (free at https://aistudio.google.com/api
 | `npm run db:reset` | Drop everything and re-apply migrations, then run `npm run db:seed` |
 | `npm run db:studio` | Browse the database in Prisma Studio |
 | `npm run typecheck` / `npm run lint` | TypeScript and ESLint checks |
+| `npm test` | Unit tests (Vitest); no database or API key needed |
+| `npm run test:e2e` | The three user flows in Chromium (Playwright); see [Tests](#tests) |
 
 ---
 
@@ -265,29 +268,96 @@ Vitest · Playwright · Vercel.
 
 ## User flows
 
-_TBD (M9) — the three smoke-tested flows, ideally with a short screen recording._
+The three flows below are what the end-to-end tests do (`tests/e2e/`). To watch them run
+step by step, use `npx playwright test --ui`.
 
-1. **Buyer:** demo login → catalog sorted by best match → asset → contact seller → message
-   appears after refresh.
-2. **Seller:** publish an asset → it appears in the catalog → rank buyers → contact a
-   buyer.
-3. **Manager:** suspend the seller → their assets disappear from the catalog → the buyer's
-   thread shows the banner.
+1. **Buyer** (`1-buyer.spec.ts`) — *Enter as Buyer* → sort the catalog by **Best match**
+   (every card shows its match %, highest first) → open *Cypriot EMI serving iGaming
+   merchants* → **Contact seller** → send the first message → it is still there after a
+   refresh.
+2. **Seller** (`2-seller.spec.ts`) — *Enter as Seller* → **+ Publish asset**, fill in the
+   form, **Publish** → search the catalog for it → **Buyers**, *Rank for* the new asset
+   (best fit first) → **Contact** on the top buyer (the form already points at that asset)
+   → send → the thread survives a refresh.
+3. **Manager** (`3-manager.spec.ts`) — *Enter as Manager* → **Participants → Sellers** →
+   **Suspend** *Baltic Fintech Holdings* with a reason → its listings disappear from the
+   catalog and its detail pages, the seller's open session is logged out on the next
+   request, and the buyer's thread with them shows the "account is suspended" banner with
+   the composer disabled → **Reinstate** → the listings come back unchanged.
+
+---
+
+## Tests
+
+```bash
+npm test                        # Vitest: unit tests, no database or API key needed
+npx playwright install chromium # once
+npm run test:e2e                # Playwright: the three flows above
+```
+
+**Unit tests** (`tests/unit/`, 83 tests) cover the rules that decide what people see and
+can do, without a database: the match score (empty lists, missing ticket, price on request,
+both edges of the 20% band, and a ticket where ×0.8 would round the wrong way), ranking
+order and pagination ties, asset and buyer visibility (each rule checked against its Prisma
+`where` builder), conversation rules, URL ⇄ filter parsing (reversed price range, unknown
+category or country, invalid page and sort, round trip), and AI search: the request and
+reply schemas, region expansion, every keyword-fallback reason, the rate-limit key and
+window, and the browser-side reply check. The moderation service runs against a mocked
+repository to check who may act on whom, transitions, the removal confirmation, and
+"changed in the meantime".
+
+**End-to-end tests** (`tests/e2e/`) run the flows in Chromium against `npm run dev` (an
+already running dev server on port 3000 is reused). They need the local database
+(`npm run db:up`) and **reseed it before and after the run** — the seed truncates every
+table, so the setup refuses to run unless the database host is `localhost`. The flows
+share that database and run in order on one worker.
 
 ---
 
 ## AI tools used
 
-_TBD (M9)._ Claude Code, driven by `SPEC.md` milestone by milestone. This section will
-record where generated code was rejected or rewritten.
+- **Claude Code** wrote most of the code, working from [`SPEC.md`](./SPEC.md) one
+  milestone at a time (M0–M9). `SPEC.md` came first and was changed before the code
+  whenever a decision changed, so each session started from the same written source of
+  truth instead of chat history. Every milestone was reviewed, run in a real browser
+  (Playwright MCP), built, and linted before its commit.
+- **Gemini 3.5 Flash-Lite** is the only AI inside the app (AI search, see above).
+
+Where generated code was rejected or rewritten:
+
+- **Outdated framework knowledge.** The model's training data predates Next.js 16 and
+  Prisma 7 (`middleware.ts` is now `proxy.ts`, `params` is a Promise, Tailwind v4 has no
+  config file, Prisma 7 needs a driver adapter). Hence the rule in `AGENTS.md`: read the
+  bundled Next.js docs before using an API. The `next build` output also caught a catalog
+  page that, without `await connection()`, would have been rendered once at build time and
+  frozen.
+- **Correct-looking logic, wrong on edge cases.** Country search used `name.includes(word)`,
+  so a search for "emi" matched United Arab *Emi*rates; the first suggested fix (word
+  prefix) still did, and the final rule matches whole words only. The query parser checked
+  for control characters before collapsing whitespace, so a search containing a tab was
+  rejected. Category tabs built their links from the server's filters, so a click during a
+  pending filter change dropped that change; the links are now built from the optimistic
+  client state.
+- **Silent data loss.** The URL parser capped each filter at 20 values, so an AI "EU"
+  search quietly dropped Spain and Sweden (raised to 40). Prices were formatted with one
+  decimal, so €1,850,000 showed as "€1.9M" (now two).
+- **Model integration.** The first model choice (`gemini-2.5-flash-lite`) returned 404 for
+  new API keys, and Gemini's own timeout option refuses anything under 10 s, so the 5-second
+  budget became an `AbortSignal`. The prompt mapped "payment institution" to the license
+  type `PI`, which hid "Small PI" listings; it was rewritten to keep a category's base
+  license out of `licenseTypes`.
 
 ---
 
 ## With more time
 
-_TBD (M9)._ Starting list: multi-language (next-intl) · realtime messaging (SSE or
-WebSockets) · document data room and NDA flow · email notifications · file and image
-uploads · saved searches and alerts · cursor pagination · full-text search (Postgres
-`tsvector`) · seller verification / KYC · audit trail for non-moderation edits · MySQL
-migration with join tables · login rate limiting and lockout (shared store such as
-Redis, since serverless instances do not share memory).
+- **Product:** multi-language (next-intl) · realtime messaging (SSE or WebSockets) ·
+  document data room and NDA flow · email notifications · file and image uploads · saved
+  searches and alerts · seller verification / KYC.
+- **Scale:** cursor pagination · full-text search (Postgres `tsvector`) · precomputed match
+  scores instead of ranking in memory · MySQL migration with join tables.
+- **Security and operations:** login rate limiting and lockout (in a shared store such as
+  Redis, since serverless instances do not share memory) · audit trail for non-moderation
+  edits · CI running lint, type check, unit tests, and the Playwright flows against a
+  Postgres service on every push · end-to-end tests against a production build as well as
+  the dev server.
