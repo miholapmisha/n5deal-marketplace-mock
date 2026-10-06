@@ -273,6 +273,8 @@ Global header by role:
   (one click, no typing). The demo password is printed under them.
 - Email + password form below. Register adds name, company, and a Buyer / Seller choice.
 - After register: Buyer → S5 (profile onboarding); Seller → S7 (first asset).
+- After login: the page the user was sent away from (`?next=`, same-origin paths only),
+  otherwise the role's home — Buyer → S3, Seller → S6, Manager → S10.
 
 **S2. Messages — `/messages`, `/messages/[id]`**
 - Desktop: two panes. Left: conversations (counterpart, asset title, last message
@@ -427,7 +429,12 @@ Rules:
    cookie; the database stores only its SHA-256 hash. `getCurrentUser()` is wrapped in
    React `cache()` so it runs once per request, and it rejects any user who is not `ACTIVE`.
    Suspending a user deletes their sessions, so the effect is immediate — unlike a JWT,
-   which stays valid until it expires.
+   which stays valid until it expires. Sessions last 7 days (fixed, no sliding refresh);
+   a user keeps at most 50 live sessions (oldest pruned at login).
+   A suspended user **never gets a session**: a correct password sets a short-lived,
+   `/suspended`-scoped cookie holding the reason, then redirects there. Guards
+   (`requireUser`, `requireRole`) send anonymous visitors to `/login` and wrong-role users
+   to their own home.
 5. Passwords: bcrypt (cost 10) via `bcryptjs` — pure JS, so no native build step on Vercel.
 6. `searchParams` is a Promise in current Next.js: await it, then parse with a Zod schema
    in `lib/` that drops invalid values.

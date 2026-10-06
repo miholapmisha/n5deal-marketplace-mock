@@ -8,8 +8,8 @@ Visual reference: [n5deal.com/all-listing](https://n5deal.com/all-listing). The 
 spec lives in [`SPEC.md`](./SPEC.md); it is the source of truth and changes before the code
 does.
 
-> **Status:** M1 — foundation (database, seed, catalog list, deploy). Sections marked
-> _TBD_ are filled in by later milestones.
+> **Status:** M2 — authentication (sessions, register/login, one-click demo login, role
+> guards, `/suspended`). Sections marked _TBD_ are filled in by later milestones.
 
 ---
 
@@ -115,6 +115,24 @@ once per request and rejects any user who is not `ACTIVE`. Suspending a user del
 sessions, so the effect is immediate — a JWT would stay valid until it expires. Passwords
 use bcrypt (cost 10) via the pure-JS `bcryptjs`, so there is no native build step on Vercel.
 
+Details worth knowing:
+
+- Sessions last 7 days. In production the cookie is `__Host-n5deal_session`: the prefix
+  makes the browser reject it unless it is `Secure`, `Path=/`, and has no `Domain`.
+- Logging in always issues a new token and deletes the previous one (no session fixation).
+- Unknown emails are still checked against a dummy bcrypt hash, so response time does not
+  reveal which emails have accounts. Removed users get the same "invalid credentials".
+- **A suspended user never gets a session.** A correct password sets a 5-minute cookie,
+  scoped to `/suspended`, that carries the reason; the page shows it.
+- `?next=` after login accepts same-origin paths only. The *normalized* path is checked, so
+  `//evil.com`, `/\evil.com`, `/.//evil.com`, and absolute URLs are all dropped.
+- At most 50 live sessions per user (oldest pruned at login), so scripted logins cannot
+  grow the table without bound; the demo accounts are shared, hence the generous limit.
+- Every response sends `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `nosniff`, and
+  `Referrer-Policy: strict-origin-when-cross-origin` (`next.config.ts`).
+- Guards (`requireUser`, `requireRole`) run in every private page; wrong-role users are
+  sent to their own home. `proxy.ts` only redirects visitors with no cookie at all.
+
 ### Derived visibility
 
 Suspending a seller does **not** mutate their assets. Visibility is computed at query time
@@ -185,4 +203,5 @@ _TBD (M9)._ Starting list: multi-language (next-intl) · realtime messaging (SSE
 WebSockets) · document data room and NDA flow · email notifications · file and image
 uploads · saved searches and alerts · cursor pagination · full-text search (Postgres
 `tsvector`) · seller verification / KYC · audit trail for non-moderation edits · MySQL
-migration with join tables.
+migration with join tables · login rate limiting and lockout (shared store such as
+Redis, since serverless instances do not share memory).

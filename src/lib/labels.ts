@@ -1,4 +1,4 @@
-import type { BusinessStatus, Category } from "@/generated/prisma/enums";
+import type { BusinessStatus, Category, Role } from "@/generated/prisma/enums";
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   BANK: "Bank",
@@ -17,4 +17,10 @@ export const BUSINESS_STATUS_LABELS: Record<BusinessStatus, string> = {
 export const ASSET_TYPE_LABELS: Record<BusinessStatus, string> = {
   ACTIVE: "Active Business (Licensed)",
   LICENSE_ONLY: "License only",
+};
+
+export const ROLE_LABELS: Record<Role, string> = {
+  BUYER: "Buyer",
+  SELLER: "Seller",
+  MANAGER: "Manager",
 };

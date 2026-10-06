@@ -91,7 +91,7 @@ Each file has these sections:
 
 - [x] M0 — Next.js scaffold, git, README skeleton, CLAUDE.md
 - [x] M1 — Tailwind + shadcn, Prisma schema, Neon, seed, Vercel deploy (https://n5deal-marketplace-mock.vercel.app)
-- [ ] M2 — Sessions, register/login, demo login, guards, `/suspended`
+- [x] M2 — Sessions, register/login, demo login, guards, `/suspended`
 - [ ] M3 — Catalog + detail + URL filters + facet counts
 - [ ] M4 — Asset form, my assets, buyer profile
 - [ ] M5 — Messaging + contact flows
