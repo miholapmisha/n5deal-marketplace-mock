@@ -41,6 +41,9 @@ npm run dev                 # http://localhost:3000
 
 Demo password for every seeded account: `n5deal-demo`.
 
+AI search is optional: put a Gemini key (free at https://aistudio.google.com/apikey) in
+`GEMINI_API_KEY`. Without one, the AI search switch falls back to keyword search with a notice.
+
 | Script | What it does |
 |---|---|
 | `npm run db:migrate` | Create and apply a new migration after editing `prisma/schema.prisma` |
@@ -221,11 +224,42 @@ the buyer profile is deleted, and every asset becomes `REMOVED` — but the row 
 conversations and the log keep their foreign keys and show "Removed user". Removing an
 account asks for its company name to be typed, checked again in the service.
 
+### AI search: the model only fills in filters
+
+With the switch on, the catalog search sends the sentence to `POST /api/ai-search` (the app's
+only route handler). Gemini 3.5 Flash-Lite answers with structured output: JSON constrained
+by a schema of the catalog's filters (categories, regions, countries, price range, business
+status, license types, a few leftover keywords). Zod checks the reply, and then it goes
+through the **same parser as the URL**, so a model answer is held to exactly the rules of a
+hand-edited link. The client puts the result in the URL; the chips are the interpretation,
+and each can be removed. Because the model can only produce filter values, a prompt
+injection can at worst produce a wrong filter, never a query or an action.
+
+- **Why Gemini, not Claude Haiku:** the Gemini API has a free tier, and mapping one sentence
+  to a small filter object needs nothing bigger than a Flash-Lite model (~1 s per call). One
+  function (`interpretQuery` in `server/ai-search/ai-search.model.ts`) talks to the model,
+  so changing provider touches one file. The model name is pinned, not `-latest`.
+- **Regions are expanded in code.** The model answers "EU" or "BALTICS"; `lib/regions.ts`
+  turns that into ISO codes, because a model listing the 27 EU members from memory can drop
+  one. The chips show a whole region as one "EU" chip rather than 27.
+- **License types are an enum of what is in the catalog**, so the model cannot invent one
+  that matches nothing; the prompt keeps it from repeating the category ("EMI license" is
+  the EMI category, not the license type that would hide "Small EMI" listings).
+- **Fallback, never an error:** no key, an API error (the free quota running out included),
+  a 5-second timeout, or an invalid reply → the text runs as a keyword search with a notice.
+- **Rate limit:** 20 searches per hour per account, or per hashed IP for visitors, counted
+  in an `AiSearchUsage` table with one atomic `INSERT … ON CONFLICT` per search. A table
+  rather than memory because serverless instances do not share memory, so an in-memory
+  counter would reset at random. The cost is one extra write per search; fixed one-hour
+  windows also allow a burst of up to 2× the limit across a window boundary, which is
+  acceptable here. The endpoint only accepts JSON, so other sites cannot spend the quota
+  through visitors' browsers without a CORS preflight, which fails.
+
 ### Stack
 
 Next.js 16 (App Router, React Compiler) · TypeScript strict · Tailwind CSS v4 + shadcn/ui ·
-Prisma · PostgreSQL on Neon · Zod · bcryptjs · Anthropic SDK (Claude Haiku 4.5) · Vitest ·
-Playwright · Vercel.
+Prisma · PostgreSQL on Neon · Zod · bcryptjs · Google Gen AI SDK (Gemini 3.5 Flash-Lite) ·
+Vitest · Playwright · Vercel.
 
 ---
 

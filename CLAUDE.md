@@ -26,7 +26,8 @@ it. Later milestones add `npm test` (Vitest) and `npx playwright test` (M9).
 Next.js 16.3 App Router · React 19 + React Compiler · TypeScript strict · Tailwind v4
 (CSS-first config in `src/app/globals.css`, no `tailwind.config.*`) · shadcn/ui (Radix,
 "nova" preset; add components with `npx shadcn@latest add <name>`) · Prisma 7 +
-PostgreSQL (Neon) · Zod 4 · bcryptjs · Anthropic SDK · Vitest · Playwright · Vercel.
+PostgreSQL (Neon) · Zod 4 · bcryptjs · Google Gen AI SDK (`@google/genai`, Gemini) · Vitest ·
+Playwright · Vercel.
 Package manager: **npm**.
 
 Next.js 16 differs from older versions: `middleware.ts` is now `proxy.ts`; `params` and
@@ -97,7 +98,7 @@ Each file has these sections:
 - [x] M5 — Messaging + contact flows (S2, S4 → S2, S9 buyer detail)
 - [x] M6 — Buyer directory + match score (S8, Rank for, S3 best match, S9 fit)
 - [x] M7 — Manager + moderation (S10, S11, hide/remove on S4)
-- [ ] M8 — AI search + fallback
+- [x] M8 — AI search + fallback (Gemini 3.5 Flash-Lite, DB rate limit)
 - [ ] M9 — Tests, README final, polish
 
 ## Deployment

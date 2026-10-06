@@ -129,6 +129,11 @@ async function distinctPublicValues(field: "country" | "licenseType" | "regulato
   return groups.map((group) => group[field]).filter((value): value is string => value !== null);
 }
 
+/** License types on at least one public asset: the values AI search may choose from. */
+export function findPublicLicenseTypes(): Promise<string[]> {
+  return distinctPublicValues("licenseType");
+}
+
 /** Option lists for the filter panel: values that occur on at least one public asset. */
 export async function findCatalogFacetValues() {
   const [countries, licenseTypes, regulators] = await Promise.all([

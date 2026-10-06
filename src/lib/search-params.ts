@@ -10,7 +10,8 @@ import { isCountryCode } from "@/lib/countries";
 
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 
-const MAX_VALUES_PER_PARAM = 20;
+/** Room for the largest region an AI search can pick (Europe: 32 countries, SPEC §7). */
+const MAX_VALUES_PER_PARAM = 40;
 const MAX_QUERY_LENGTH = 100;
 const MAX_PAGE = 10_000;
 

@@ -1,11 +1,11 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { LoaderCircle, Search, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
-const MAX_QUERY_LENGTH = 100;
+const DEFAULT_MAX_LENGTH = 100;
 
 interface SearchBoxProps {
   /** The search in the URL. */
@@ -14,10 +14,20 @@ interface SearchBoxProps {
   onSearch: (query: string | null) => void;
   placeholder: string;
   label: string;
+  maxLength?: number;
+  /** A search is running somewhere other than a navigation (AI search): the button waits. */
+  pending?: boolean;
 }
 
 /** A keyword search whose value lives in the URL; it applies on submit, not per keystroke. */
-export function SearchBox({ query, onSearch, placeholder, label }: SearchBoxProps) {
+export function SearchBox({
+  query,
+  onSearch,
+  placeholder,
+  label,
+  maxLength = DEFAULT_MAX_LENGTH,
+  pending = false,
+}: SearchBoxProps) {
   const [text, setText] = useState(query ?? "");
   // Follow the URL when it changes elsewhere (a removed chip, "Reset all filters").
   const [syncedQuery, setSyncedQuery] = useState(query);
@@ -46,7 +56,7 @@ export function SearchBox({ query, onSearch, placeholder, label }: SearchBoxProp
           name="q"
           value={text}
           onChange={(event) => setText(event.target.value)}
-          maxLength={MAX_QUERY_LENGTH}
+          maxLength={maxLength}
           placeholder={placeholder}
           aria-label={label}
           className="h-10 w-full rounded-full border border-input bg-card pr-9 pl-9 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
@@ -62,7 +72,8 @@ export function SearchBox({ query, onSearch, placeholder, label }: SearchBoxProp
           </button>
         )}
       </div>
-      <Button type="submit" className="h-10 rounded-full px-5">
+      <Button type="submit" disabled={pending} aria-busy={pending} className="h-10 rounded-full px-5">
+        {pending && <LoaderCircle className="size-4 animate-spin" aria-hidden />}
         Search
       </Button>
     </form>

@@ -210,3 +210,15 @@ model ModerationLog {
 
   @@index([createdAt])
 }
+
+/// AI search rate limit (SPEC §7): searches per caller per fixed one-hour window.
+model AiSearchUsage {
+  /// "user:<id>" or "ip:<SHA-256 of the client IP>".
+  key         String
+  /// Start of the hour the searches were made in.
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+}

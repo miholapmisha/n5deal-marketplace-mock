@@ -50,7 +50,7 @@ async function main(): Promise<void> {
   try {
     await db.$transaction([
       // Static SQL, no user input. CASCADE clears every table that references these.
-      db.$executeRaw`TRUNCATE TABLE "Message", "Conversation", "ModerationLog", "Session", "BuyerProfile", "Asset", "User" CASCADE`,
+      db.$executeRaw`TRUNCATE TABLE "Message", "Conversation", "ModerationLog", "Session", "BuyerProfile", "Asset", "User", "AiSearchUsage" CASCADE`,
       db.user.createMany({ data: users }),
       db.buyerProfile.createMany({ data: buyerProfiles }),
       db.asset.createMany({ data: assets }),

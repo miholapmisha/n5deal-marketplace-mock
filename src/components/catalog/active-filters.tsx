@@ -4,24 +4,43 @@ import type { ComponentProps } from "react";
 import { CatalogLink } from "@/components/catalog/catalog-link";
 import type { CatalogFilters } from "@/lib/catalog-filters";
 import { countryName, formatPrice } from "@/lib/format";
-import { BUSINESS_STATUS_LABELS } from "@/lib/labels";
+import { BUSINESS_STATUS_LABELS, CATEGORY_LABELS } from "@/lib/labels";
+import { REGION_LABELS, regionOf } from "@/lib/regions";
 
 /** A chip's label plus what clicking its × does (passed straight to CatalogLink). */
 type Chip = { key: string; label: string } & Pick<ComponentProps<typeof CatalogLink>, "patch" | "remove">;
+
+/** Up to this many countries get a chip each; more collapse into one "N countries" chip. */
+const MAX_COUNTRY_CHIPS = 4;
 
 function priceLabel(min: number | null, max: number | null): string {
   if (min !== null && max !== null) return `${formatPrice(min)} – ${formatPrice(max)}`;
   return min !== null ? `From ${formatPrice(min)}` : `Up to ${formatPrice(max)}`;
 }
 
+/** An AI search for "the EU" selects 27 countries: one chip for the region, not 27. */
+function countryChips(countries: string[]): Chip[] {
+  if (countries.length === 0) return [];
+  const region = regionOf(countries);
+  if (region) return [{ key: `region:${region}`, label: REGION_LABELS[region], patch: { countries: [] } }];
+  if (countries.length > MAX_COUNTRY_CHIPS) {
+    return [{ key: "countries", label: `${countries.length} countries`, patch: { countries: [] } }];
+  }
+  return countries.map((code) => ({
+    key: `country:${code}`,
+    label: countryName(code),
+    remove: { key: "countries" as const, value: code },
+  }));
+}
+
 function chipsFor(filters: CatalogFilters): Chip[] {
   return [
-    ...(filters.q ? [{ key: "q", label: `“${filters.q}”`, patch: { q: null } }] : []),
-    ...filters.countries.map((code) => ({
-      key: `country:${code}`,
-      label: countryName(code),
-      remove: { key: "countries" as const, value: code },
+    ...filters.categories.map((category) => ({
+      key: `category:${category}`,
+      label: CATEGORY_LABELS[category],
+      remove: { key: "categories" as const, value: category },
     })),
+    ...countryChips(filters.countries),
     ...(filters.priceMin !== null || filters.priceMax !== null
       ? [
           {
@@ -46,10 +65,14 @@ function chipsFor(filters: CatalogFilters): Chip[] {
       label: regulator,
       remove: { key: "regulators" as const, value: regulator },
     })),
+    ...(filters.q ? [{ key: "q", label: `“${filters.q}”`, patch: { q: null } }] : []),
   ];
 }
 
-/** Removable chips for every active filter except the category (the tabs show that). */
+/**
+ * Removable chips for every active filter, the category included: after an AI search this
+ * row is the interpretation, read left to right (SPEC §5 S3, §7).
+ */
 export function ActiveFilters({ filters }: { filters: CatalogFilters }) {
   const chips = chipsFor(filters);
   if (chips.length === 0) return null;

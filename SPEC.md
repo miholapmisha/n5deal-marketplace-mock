@@ -186,6 +186,14 @@ model ModerationLog {
   createdAt      DateTime         @default(now())
   @@index([createdAt])
 }
+
+model AiSearchUsage {                      // AI search rate limit (§7)
+  key          String                      // "user:<id>" or "ip:<sha256 of the IP>"
+  windowStart  DateTime                    // start of the one-hour window
+  count        Int       @default(0)
+  @@id([key, windowStart])
+  @@index([windowStart])
+}
 ```
 
 Model notes:
@@ -307,7 +315,9 @@ Global header by role:
 - Category pill tabs with counts: All · Bank · Fintech · Payment · EMI · Crypto. Counts
   respect every active filter except category (facet counts).
 - Search box with an **AI search** toggle (§7). When AI search is used, show the
-  interpreted filters as removable chips: "EMI · Malta, Lithuania · ≤ €500k".
+  interpreted filters as removable chips: "EMI · Malta, Lithuania · ≤ €500k". The chip row
+  covers every filter, category included. Countries that make up a whole region show as one
+  chip ("EU"); more than four other countries collapse into one "N countries" chip.
 - Filter panel (side panel on desktop, drawer on mobile): country (multi-select with
   search), price min/max, business status (Active / License only), license type,
   regulator. *Reset all filters*.
@@ -442,7 +452,7 @@ src/
     messaging/                  same
     moderation/                 same
     matching/                   matchScore (§4.4), pure
-    ai-search/                  prompt, Claude call, output schema, fallback
+    ai-search/                  prompt, Gemini call, output schema, rate limit, fallback
   components/                   UI; AssetCard is shared by S3, S4, S7
   lib/                          formatters (price, country flag), URL ⇄ filter parsing
 prisma/
@@ -483,7 +493,8 @@ Rules:
    in `lib/` that drops invalid values.
 
 **Stack:** Next.js (App Router) · TypeScript strict · Tailwind CSS + shadcn/ui · Prisma ·
-PostgreSQL on Neon · Zod · bcryptjs · Anthropic SDK · Vitest · Playwright · Vercel.
+PostgreSQL on Neon · Zod · bcryptjs · Google Gen AI SDK (Gemini) · Vitest · Playwright ·
+Vercel.
 
 Why one Next.js app instead of a separate NestJS backend: one deploy, types shared end to
 end, no CORS or cross-domain cookies, and it matches N5Deal's move to Next.js/TypeScript.
@@ -494,28 +505,53 @@ If a mobile client, background workers, or a separate backend team appear, the s
 
 ## 7. AI search (smart filtering)
 
-- **Input:** free text on S3, e.g. "EMI license in the EU under 500k, active business".
-- **Flow:** `POST /api/ai-search` → Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) with a
-  single forced tool whose input schema is the filter object below → Zod parse → the client
-  navigates to `/assets?<params>` → chips show the interpretation; each chip can be removed.
+- **Input:** free text on S3 (up to 200 characters), e.g. "EMI license in the EU under
+  500k, active business". An **AI search** switch under the search box chooses between AI
+  search and the plain keyword search; it is off by default.
+- **Model:** Google Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`) through the Google Gen
+  AI SDK (`@google/genai`), key in `GEMINI_API_KEY`. Chosen over Claude Haiku 4.5 because
+  the Gemini API has a free tier (no prepaid credit), and turning one sentence into a small
+  filter object needs nothing bigger than a Flash-Lite model (~1 s per call). The name is
+  pinned, not the `-latest` alias, so behaviour changes only when the code does. Free-tier
+  prompts may be used by Google to improve its products; only the search text is sent. One
+  function (`interpretQuery`) talks to the model, so changing provider touches one file.
+- **Flow:** `POST /api/ai-search` → rate limit → Gemini with structured output
+  (`responseMimeType: application/json` + a JSON schema of the filter object below,
+  temperature 0) → Zod parse → the same parser the URL goes through (`parseCatalogFilters`)
+  → the client navigates to `/assets?<params>` → chips show the interpretation; each chip
+  can be removed. The sort is kept; every other filter is replaced.
 - **Output schema:**
   ```ts
   {
     categories?: Category[];
-    countries?: string[];          // ISO alpha-2, expanded from "EU", "Baltics", etc.
+    regions?: Region[];            // "EU", "EEA", "BALTICS", … — expanded to ISO codes in code
+    countries?: string[];          // ISO alpha-2, for countries named one by one
     priceMinEur?: number;
     priceMaxEur?: number;
     businessStatus?: BusinessStatus[];
-    licenseTypes?: string[];
-    keywords?: string;             // whatever doesn't map to a structured filter
+    licenseTypes?: string[];       // enum = the license types currently in the catalog
+    keywords?: string;             // what maps to no structured filter, ≤ 3 words
   }
   ```
-- **Safety:** the model only produces filter values. Zod enums and ranges validate them,
-  so a prompt injection can at worst produce a wrong filter, never a query or an action.
-- **Fallback:** no `ANTHROPIC_API_KEY`, a 5-second timeout, or invalid output → use the
-  text as a plain keyword search and show "AI search unavailable — showing keyword results".
-- **Limit:** 20 AI searches per hour per session or IP (counter table or in-memory per
-  instance — note the trade-off in the README).
+  Regions are expanded by code (`lib/regions.ts`), not by the model: a model listing the 27
+  EU members from memory can drop one.
+- **Safety:** the model only produces filter values. The JSON schema constrains it, Zod
+  validates it, and the URL parser drops anything invalid, so a prompt injection can at
+  worst produce a wrong filter, never a query or an action. The prompt tells the model to
+  treat the text as a search description and nothing else.
+- **Fallback:** the text becomes a plain keyword search, with a notice on S3:
+  - no `GEMINI_API_KEY`, an API error (including an exhausted free-tier quota), a 5-second
+    timeout, or invalid output → "AI search unavailable — showing keyword results";
+  - valid output with no filters at all → "AI search couldn't turn that into filters —
+    showing keyword results";
+  - over the limit → "AI search limit reached (20 per hour) — showing keyword results".
+- **Limit:** 20 AI searches per hour per caller — the user id when logged in, otherwise a
+  SHA-256 of the client IP (`x-real-ip` / `x-forwarded-for`, which Vercel sets). Counted in
+  the `AiSearchUsage` table in fixed one-hour windows (older windows pruned on write), so
+  the limit holds across serverless instances. Trade-off for the README: one extra write per
+  search, and up to 2× the limit in a burst across a window boundary.
+- **Endpoint:** JSON bodies only (`Content-Type: application/json` forces a CORS preflight
+  on cross-site requests), at most 2 KB, validated with Zod.
 
 ---
 
@@ -615,7 +651,7 @@ audit trail for non-moderation edits · MySQL migration with join tables.
 
 ## 14. README checklist
 
-- Launch steps: `.env` (`DATABASE_URL`, optional `ANTHROPIC_API_KEY`), install, migrate,
+- Launch steps: `.env` (`DATABASE_URL`, optional `GEMINI_API_KEY`), install, migrate,
   seed, dev.
 - Deployed URL + the three demo accounts.
 - Key technical decisions (§6, sessions vs JWT, authorization in services, derived

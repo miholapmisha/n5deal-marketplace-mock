@@ -20,6 +20,7 @@ import {
   findCatalogMatchFacts,
   findConversationId,
   findOwnAssets,
+  findPublicLicenseTypes,
   insertAsset,
   publishIfDraft,
   unpublishIfPublished,
@@ -161,6 +162,12 @@ export async function getCatalogFacetOptions(filters: CatalogFilters): Promise<C
       .map((value) => ({ value, label: value }))
       .sort(byLabel),
   };
+}
+
+/** License types listed in the catalog, sorted: the choices AI search gets (SPEC §7). */
+export async function listCatalogLicenseTypes(): Promise<string[]> {
+  const licenseTypes = await findPublicLicenseTypes();
+  return [...licenseTypes].sort((a, b) => a.localeCompare(b, "en"));
 }
 
 // ─── Asset detail (S4) ───────────────────────────────────────────────────────────────────
