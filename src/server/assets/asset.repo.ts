@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Category, Prisma } from "@/generated/prisma/client";
+import { type AssetStatus, type Category, Prisma } from "@/generated/prisma/client";
 import { type CatalogFilters, type CatalogSort, MAX_KEYWORDS } from "@/lib/catalog-filters";
 import { countryCodesMatching } from "@/lib/countries";
 import { db } from "@/server/db";
@@ -136,6 +136,75 @@ export async function findConversationId(assetId: string, buyerId: string): Prom
   return conversation?.id ?? null;
 }
 
+// ─── Owner (S6, S7) ──────────────────────────────────────────────────────────────────────
+
+export async function findOwnAssets(sellerId: string) {
+  return db.asset.findMany({
+    where: { sellerId, status: { not: "REMOVED" } },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      category: true,
+      priceEur: true,
+      status: true,
+      statusReason: true,
+      updatedAt: true,
+      _count: { select: { conversations: true } },
+    },
+    orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+  });
+}
+
+/** Every field the asset form edits, plus what the service needs to authorize the edit. */
+export async function findAssetForEdit(assetId: string) {
+  return db.asset.findUnique({
+    where: { id: assetId },
+    select: {
+      ...assetCardSelect,
+      sellerId: true,
+      otherLicenses: true,
+      yearOfIssue: true,
+      employees: true,
+      status: true,
+      statusReason: true,
+    },
+  });
+}
+
+export type AssetWriteData = Omit<Prisma.AssetUncheckedCreateInput, "id" | "slug" | "createdAt" | "updatedAt">;
+
+const SLUG_ATTEMPTS = 3;
+
+function isUniqueViolation(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+/** Inserts with a fresh slug from `nextSlug`, retrying if one is already taken. */
+export async function insertAsset(data: AssetWriteData, nextSlug: () => string): Promise<{ slug: string }> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await db.asset.create({ data: { ...data, slug: nextSlug() }, select: { slug: true } });
+    } catch (error) {
+      if (!isUniqueViolation(error) || attempt >= SLUG_ATTEMPTS) throw error;
+    }
+  }
+}
+
+/**
+ * Writes the owner's edit only if the asset still has the status the service checked, so a
+ * manager hiding it at the same moment is never overwritten. False if nothing matched.
+ */
+export async function updateAssetIfStatus(
+  assetId: string,
+  sellerId: string,
+  expectedStatus: AssetStatus,
+  data: Partial<AssetWriteData>,
+): Promise<boolean> {
+  const { count } = await db.asset.updateMany({ where: { id: assetId, sellerId, status: expectedStatus }, data });
+  return count === 1;
+}
+
 export async function findAssetOwnership(assetId: string) {
   return db.asset.findUnique({
     where: { id: assetId },
@@ -143,14 +212,12 @@ export async function findAssetOwnership(assetId: string) {
   });
 }
 
-/**
- * PUBLISHED → DRAFT. Status and owner sit in the WHERE clause, so a manager hiding the asset
- * at the same moment cannot be overwritten. Returns false if nothing matched.
- */
+/** PUBLISHED → DRAFT, only if still published (see `updateAssetIfStatus`). */
 export async function unpublishIfPublished(assetId: string, sellerId: string): Promise<boolean> {
-  const { count } = await db.asset.updateMany({
-    where: { id: assetId, sellerId, status: "PUBLISHED" },
-    data: { status: "DRAFT", publishedAt: null },
-  });
-  return count === 1;
+  return updateAssetIfStatus(assetId, sellerId, "PUBLISHED", { status: "DRAFT", publishedAt: null });
+}
+
+/** DRAFT → PUBLISHED, only if still a draft. */
+export async function publishIfDraft(assetId: string, sellerId: string): Promise<boolean> {
+  return updateAssetIfStatus(assetId, sellerId, "DRAFT", { status: "PUBLISHED", publishedAt: new Date() });
 }

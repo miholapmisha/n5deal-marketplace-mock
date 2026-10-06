@@ -1,13 +1,38 @@
 import type { Metadata } from "next";
 
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { ProfileForm } from "@/components/buyer/profile-form";
+import { profileToFormValues } from "@/lib/buyer-profile-form";
+import { COUNTRY_OPTIONS } from "@/lib/countries";
 import { requireRole } from "@/server/auth/guards";
+import { getOwnBuyerProfile } from "@/server/buyers/buyer.service";
 
 export const metadata: Metadata = {
   title: "My profile",
 };
 
-export default async function Page() {
+// S5. Right after registering, this is the onboarding step (no profile row yet).
+export default async function ProfilePage() {
   const user = await requireRole("BUYER");
-  return <PlaceholderPage title="My profile" milestone="M4" user={user} />;
+  const own = await getOwnBuyerProfile();
+  const onboarding = own?.profile === null;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          {onboarding ? `Welcome, ${user.name}` : "My profile"}
+        </h1>
+        <p className="max-w-2xl text-muted-foreground">
+          {onboarding
+            ? "Tell sellers what you want to acquire. We use it to rank assets for you, and sellers use it to find you."
+            : "Your acquisition mandate. Sellers see it in the buyer directory while it is visible."}
+        </p>
+      </header>
+      <ProfileForm
+        initialValues={profileToFormValues(own?.companyName ?? user.companyName, own?.profile ?? null)}
+        onboarding={onboarding}
+        countries={COUNTRY_OPTIONS}
+      />
+    </div>
+  );
 }

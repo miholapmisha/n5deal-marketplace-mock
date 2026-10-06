@@ -27,12 +27,15 @@ interface AssetCardProps {
   asset: AssetCardAsset;
   /** Hides the "View asset" link, e.g. in a preview of an unsaved asset. */
   preview?: boolean;
+  /** Country name computed on the server, for client renders (see COUNTRY_OPTIONS). */
+  countryLabel?: string;
 }
 
-export function AssetCard({ asset, preview = false }: AssetCardProps) {
+export function AssetCard({ asset, preview = false, countryLabel }: AssetCardProps) {
   const isActive = asset.businessStatus === "ACTIVE";
+  const country = countryLabel ?? countryName(asset.country);
   const rows: { label: string; value: string; className?: string }[] = [
-    { label: "Country", value: countryName(asset.country) },
+    { label: "Country", value: country },
     { label: "Type of business", value: CATEGORY_LABELS[asset.category] },
     {
       label: "Business status",
@@ -50,7 +53,7 @@ export function AssetCard({ asset, preview = false }: AssetCardProps) {
           <span aria-hidden className="text-2xl leading-none">
             {countryFlag(asset.country)}
           </span>
-          {countryName(asset.country)}
+          {country}
         </div>
         <Badge variant="secondary">{CATEGORY_LABELS[asset.category]}</Badge>
       </header>

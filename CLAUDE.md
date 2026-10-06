@@ -93,7 +93,7 @@ Each file has these sections:
 - [x] M1 — Tailwind + shadcn, Prisma schema, Neon, seed, Vercel deploy (https://n5deal-marketplace-mock.vercel.app)
 - [x] M2 — Sessions, register/login, demo login, guards, `/suspended`
 - [x] M3 — Catalog + detail + URL filters + facet counts
-- [ ] M4 — Asset form, my assets, buyer profile
+- [x] M4 — Asset form, my assets, buyer profile
 - [ ] M5 — Messaging + contact flows
 - [ ] M6 — Buyer directory + match score
 - [ ] M7 — Manager + moderation

@@ -35,3 +35,19 @@ export function countryCodesMatching(word: string): string[] {
     return name.startsWith(needle) || name.split(/[\s,()&-]+/).includes(needle);
   });
 }
+
+export interface CountryOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Every ISO country as a select option, sorted by English name. Build it on the server and
+ * pass it to client components: browsers and Node ship different ICU data ("Falkland
+ * Islands" vs "Falkland Islands (Islas Malvinas)"), so names computed on both sides would
+ * break hydration.
+ */
+export const COUNTRY_OPTIONS: readonly CountryOption[] = COUNTRY_CODES.map((code) => ({
+  value: code,
+  label: countryName(code),
+})).sort((a, b) => a.label.localeCompare(b.label, "en"));

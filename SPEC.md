@@ -328,7 +328,8 @@ Global header by role:
   countries (multi, empty = any), business status preference, timeline, investment thesis
   (textarea, 50–2000 chars), "Visible to sellers" toggle.
 - Profile completeness meter (share of filled fields).
-- On first login this is the onboarding step; after saving → S3 sorted by *Best match*.
+- On first login this is the onboarding step; after saving → S3 sorted by *Best match* (until
+  M6 adds that sort, → S3 with the default sort).
 
 ### Seller
 
@@ -344,6 +345,10 @@ Global header by role:
   (benefits as chips, description 100–5000 chars, year of issue, employees).
 - **Live card preview** beside the form, using the same component as S3.
 - *Save draft* / *Publish*. Zod errors next to each field, preserved input on error.
+- Editing a published asset: *Move to drafts* / *Save changes*. Editing an asset hidden by a
+  manager saves the content, but it stays `HIDDEN` until a manager unhides it.
+- New slugs: `<country>-<license>-<6 random digits>` (e.g. `malta-emi-482913`), fixed at
+  creation so shared links never break.
 
 **S8. Buyer directory — `/buyers`**
 - Search (name, company, thesis) + filters: category interest, country, ticket range

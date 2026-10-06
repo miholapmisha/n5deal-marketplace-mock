@@ -1,13 +1,22 @@
 import type { Metadata } from "next";
 
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { AssetFormPage } from "@/components/seller/asset-form-page";
+import { EMPTY_ASSET_FORM } from "@/lib/asset-form";
 import { requireRole } from "@/server/auth/guards";
 
 export const metadata: Metadata = {
   title: "Publish an asset",
 };
 
-export default async function Page() {
-  const user = await requireRole("SELLER");
-  return <PlaceholderPage title="Publish an asset" milestone="M4" user={user} />;
+// S7 (new). Also the landing page right after a seller registers.
+export default async function NewAssetPage() {
+  await requireRole("SELLER");
+  return (
+    <AssetFormPage
+      title="Publish an asset"
+      description="Describe the license or business. Buyers see the card on the right in the catalog; your identity stays hidden until you talk to them."
+      status={null}
+      initialValues={EMPTY_ASSET_FORM}
+    />
+  );
 }
