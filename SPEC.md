@@ -255,6 +255,13 @@ cards for buyers, and "rank buyers for my asset" for sellers.
 Unit-test the edges: empty lists, missing ticket, price on request, the boundaries of the
 20% band.
 
+- A ticket with only one bound is open on the other side ("From €500K" has no maximum).
+  The 20% band is inclusive: `0.8 × min ≤ price < min` or `max < price ≤ 1.2 × max`.
+- Sorting by score happens in the service, not in SQL: the matching rows' scoring fields
+  are fetched (capped, newest first), scored, sorted (score ↓, then newest, then id), and
+  only the visible page is loaded in full. One implementation of the formula, never a SQL
+  copy of it.
+
 ---
 
 ## 5. Screens
@@ -309,13 +316,16 @@ Global header by role:
 - All filter state lives in the URL query string (shareable, survives refresh). Invalid
   params are ignored, never a crash. Keys: `q`, `category`, `country`, `status`, `license`,
   `regulator` (repeatable), `priceMin`, `priceMax`, `sort` (`newest` · `price-asc` ·
-  `price-desc`), `page`.
+  `price-desc` · `best-match`), `page`. `best-match` needs a Buyer with a saved profile;
+  for anyone else it falls back to Newest (a Buyer without a profile sees the option
+  disabled, with a hint to complete the profile).
 - Keyword search: every word must match the title, description, license type, regulator,
   or country name. A price bound excludes "price on request" listings.
 - Empty state: "No assets match these filters" + *Reset filters*.
 
 **S4. Asset detail — `/assets/[slug]`**
-- Header: flag, title, category, business status badge, price (or "Price on request").
+- Header: flag, title, category, business status badge, price (or "Price on request"); a
+  Buyer with a profile also sees the match badge.
 - Key-facts grid: country, regulator, license type, other licenses, year of issue,
   employees.
 - Benefit chips, full description.
@@ -334,8 +344,7 @@ Global header by role:
   countries (multi, empty = any), business status preference, timeline, investment thesis
   (textarea, 50–2000 chars), "Visible to sellers" toggle.
 - Profile completeness meter (share of filled fields).
-- On first login this is the onboarding step; after saving → S3 sorted by *Best match* (until
-  M6 adds that sort, → S3 with the default sort).
+- On first login this is the onboarding step; after saving → S3 sorted by *Best match*.
 
 ### Seller
 
@@ -360,13 +369,24 @@ Global header by role:
 - Search (name, company, thesis) + filters: category interest, country, ticket range
   overlap, buyer type.
 - **"Rank for: [one of my assets ▾]"** — sorts by `matchScore` and shows the % on each card.
+  Sellers only; the list is the seller's own `PUBLISHED` assets (the ones they can contact
+  a buyer about). An unknown or foreign asset in the URL is ignored.
 - Card: company / name, buyer type, ticket range, category chips, countries, thesis
-  excerpt, timeline, *View* / *Contact*.
-- Empty state + reset.
+  excerpt, timeline, *View* / *Contact* (Contact for Sellers; it opens S9 with the ranked
+  asset preselected).
+- Filters in the URL like S3: `q`, `category`, `country`, `type` (repeatable),
+  `ticketMin`, `ticketMax`, `rank` (asset id), `page`; invalid values are dropped.
+  A buyer whose category or country list is empty ("any") matches every category or
+  country filter; a missing ticket bound is open, so the overlap test never excludes it.
+- Default order: most recently updated profile first. 12 cards per page.
+- Empty state + reset. Loading skeleton.
 
 **S9. Buyer detail — `/buyers/[id]`**
 - Full profile + *Contact buyer*: pick one of your published assets, write the first
   message. If a conversation already exists for that asset → open it.
+- For Sellers: "Fit with your assets" — each own published asset with its match % and the
+  points per signal (§4.4), best first. The contact form preselects `?asset=<id>` (from
+  S8) or the best match without a thread.
 
 ### Platform Manager
 

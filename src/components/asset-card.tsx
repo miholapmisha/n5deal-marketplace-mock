@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "cn";
 
+import { MatchBadge } from "@/components/match-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { BusinessStatus, Category } from "@/generated/prisma/enums";
@@ -29,9 +30,11 @@ interface AssetCardProps {
   preview?: boolean;
   /** Country name computed on the server, for client renders (see COUNTRY_OPTIONS). */
   countryLabel?: string;
+  /** The viewing buyer's match score; shown as a badge when set. */
+  match?: number | null;
 }
 
-export function AssetCard({ asset, preview = false, countryLabel }: AssetCardProps) {
+export function AssetCard({ asset, preview = false, countryLabel, match = null }: AssetCardProps) {
   const isActive = asset.businessStatus === "ACTIVE";
   const country = countryLabel ?? countryName(asset.country);
   const rows: { label: string; value: string; className?: string }[] = [
@@ -49,13 +52,16 @@ export function AssetCard({ asset, preview = false, countryLabel }: AssetCardPro
   return (
     <article className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-card">
       <header className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm font-semibold">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <span aria-hidden className="text-2xl leading-none">
             {countryFlag(asset.country)}
           </span>
-          {country}
+          <span className="truncate">{country}</span>
         </div>
-        <Badge variant="secondary">{CATEGORY_LABELS[asset.category]}</Badge>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {match !== null && <MatchBadge score={match} />}
+          <Badge variant="secondary">{CATEGORY_LABELS[asset.category]}</Badge>
+        </div>
       </header>
 
       <h3 className="line-clamp-2 min-h-[2lh] font-semibold leading-snug">{asset.title}</h3>

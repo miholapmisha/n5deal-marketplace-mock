@@ -11,13 +11,15 @@ export const MAX_PRICE_EUR = 2_147_483_647;
 /** Keyword search uses at most this many words; each adds an OR group to the query. */
 export const MAX_KEYWORDS = 6;
 
-export const CATALOG_SORTS = ["newest", "price-asc", "price-desc"] as const;
+/** `best-match` needs a buyer with a profile; for anyone else the catalog shows Newest. */
+export const CATALOG_SORTS = ["newest", "price-asc", "price-desc", "best-match"] as const;
 export type CatalogSort = (typeof CATALOG_SORTS)[number];
 
 export const SORT_LABELS: Record<CatalogSort, string> = {
   newest: "Newest",
   "price-asc": "Price: low to high",
   "price-desc": "Price: high to low",
+  "best-match": "Best match",
 };
 
 export interface CatalogFilters {

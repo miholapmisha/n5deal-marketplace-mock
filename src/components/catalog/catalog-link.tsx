@@ -4,7 +4,8 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 
 import { useCatalogNavigation } from "@/components/catalog/catalog-navigation";
-import { LinkPendingMarker } from "@/components/catalog/link-pending-marker";
+import { LinkPendingMarker } from "@/components/filters/link-pending-marker";
+import type { PageLinkProps } from "@/components/filters/pagination";
 import {
   type CatalogFilters,
   catalogHref,
@@ -40,4 +41,9 @@ export function CatalogLink({ patch, remove, reset = false, children, ...props }
       <LinkPendingMarker />
     </Link>
   );
+}
+
+/** Pagination: a page link scrolls to the top, since a new page is read from its first card. */
+export function CatalogPageLink({ page, ...props }: PageLinkProps) {
+  return <CatalogLink patch={{ page }} scroll {...props} />;
 }

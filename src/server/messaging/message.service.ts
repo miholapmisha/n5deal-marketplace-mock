@@ -4,7 +4,9 @@ import { cache } from "react";
 
 import type { AssetStatus } from "@/generated/prisma/client";
 import type { ThreadMessage } from "@/lib/messaging";
+import { findPublishedAssetsOf } from "@/server/assets/asset.repo";
 import { type CurrentUser, getCurrentUser } from "@/server/auth/session";
+import { getBuyerDetail } from "@/server/buyers/buyer.service";
 import { recordId } from "@/server/form-fields";
 import {
   countUnreadConversations,
@@ -13,12 +15,13 @@ import {
   findConversationFor,
   findConversationParticipants,
   findConversationsFor,
-  findPublishedAssetsOf,
   findThreadsBetween,
   insertMessage,
   markReadUpTo,
   upsertConversationWithMessage,
 } from "@/server/messaging/message.repo";
+import { type MatchSignals, matchScore, matchSignals } from "@/server/matching/match-score";
+import { rankBy } from "@/server/matching/rank";
 import { canViewAsset, isPubliclyVisible } from "@/server/policies/asset-visibility";
 import { isBuyerListed } from "@/server/policies/buyer-visibility";
 import {
@@ -260,21 +263,43 @@ export async function markConversationRead(conversationId: string, seenAt: Date)
 
 // ─── Contact a buyer (S9) ────────────────────────────────────────────────────────────────
 
+export interface ContactAssetOption {
+  id: string;
+  slug: string;
+  title: string;
+  /** How well this asset fits the buyer's profile, 0–100 (SPEC §4.4). */
+  match: number;
+  signals: MatchSignals;
+}
+
 export interface ContactBuyerOptions {
-  /** The seller's published assets, newest first. */
-  assets: { id: string; title: string }[];
+  /** The seller's published assets, best fit for this buyer first. */
+  assets: ContactAssetOption[];
   /** Existing threads with this buyer, any asset status. */
   threads: { id: string; assetId: string; assetTitle: string }[];
 }
 
-/** What the "Contact buyer" form offers this seller. Null for anyone who is not a seller. */
+/**
+ * What the "Contact buyer" form offers this seller, scored against the buyer's profile (the
+ * seller → buyer direction of the match score). Null for anyone who is not a seller, and for
+ * a buyer who is not listed: the profile is loaded here, never taken from the caller.
+ */
 export async function getContactBuyerOptions(buyerId: string): Promise<ContactBuyerOptions | null> {
-  const user = await getCurrentUser();
-  if (user?.role !== "SELLER") return null;
+  // getBuyerDetail is memoized per request: on S9 this reuses the page's own lookup.
+  const [user, buyer] = await Promise.all([getCurrentUser(), getBuyerDetail(buyerId)]);
+  if (user?.role !== "SELLER" || !buyer) return null;
 
-  const [assets, threads] = await Promise.all([findPublishedAssetsOf(user.id), findThreadsBetween(buyerId, user.id)]);
+  const [assets, threads] = await Promise.all([findPublishedAssetsOf(user.id), findThreadsBetween(buyer.id, user.id)]);
+  const ranked = rankBy(assets, (asset) => matchScore(asset, buyer.profile), (asset) => asset.publishedAt);
+  const byId = new Map(assets.map((asset) => [asset.id, asset]));
+
   return {
-    assets,
+    assets: ranked.flatMap(({ id, score }) => {
+      const asset = byId.get(id);
+      return asset
+        ? [{ id, slug: asset.slug, title: asset.title, match: score, signals: matchSignals(asset, buyer.profile) }]
+        : [];
+    }),
     threads: threads.map((thread) => ({ id: thread.id, assetId: thread.assetId, assetTitle: thread.asset.title })),
   };
 }

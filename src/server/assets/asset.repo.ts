@@ -6,6 +6,7 @@ import { countryCodesMatching } from "@/lib/countries";
 import { db } from "@/server/db";
 import { isUniqueViolation } from "@/server/prisma-errors";
 import { publicAssetWhere } from "@/server/policies/asset-visibility";
+import { containsWord, searchWords } from "@/server/text-search";
 
 // Fields the catalog card needs. Seller identity is deliberately excluded (SPEC §1.4).
 export const assetCardSelect = {
@@ -34,29 +35,21 @@ const assetDetailSelect = {
   seller: { select: { status: true, name: true, companyName: true } },
 } as const satisfies Prisma.AssetSelect;
 
-/** Prisma passes `contains` through to ILIKE; escape its wildcards so "%" means "%". */
-function likeLiteral(text: string): string {
-  return text.replace(/[\\%_]/g, (char) => `\\${char}`);
-}
-
 /** Every word must appear in at least one text field (or name the asset's country). */
 function keywordWhere(q: string): Prisma.AssetWhereInput[] {
-  return q
-    .split(" ")
-    .slice(0, MAX_KEYWORDS)
-    .map((word) => {
-      const contains = { contains: likeLiteral(word), mode: "insensitive" } as const;
-      const countries = countryCodesMatching(word);
-      return {
-        OR: [
-          { title: contains },
-          { description: contains },
-          { licenseType: contains },
-          { regulator: contains },
-          ...(countries.length > 0 ? [{ country: { in: countries } }] : []),
-        ],
-      };
-    });
+  return searchWords(q, MAX_KEYWORDS).map((word) => {
+    const contains = containsWord(word);
+    const countries = countryCodesMatching(word);
+    return {
+      OR: [
+        { title: contains },
+        { description: contains },
+        { licenseType: contains },
+        { regulator: contains },
+        ...(countries.length > 0 ? [{ country: { in: countries } }] : []),
+      ],
+    };
+  });
 }
 
 /**
@@ -81,11 +74,17 @@ function catalogWhere(filters: CatalogFilters, { ignoreCategories = false } = {}
   return { AND: conditions };
 }
 
-/** `id` breaks ties, so pagination is stable when two rows share a price or a date. */
+const NEWEST_FIRST: Prisma.AssetOrderByWithRelationInput[] = [{ publishedAt: "desc" }, { id: "asc" }];
+
+/**
+ * `id` breaks ties, so pagination is stable when two rows share a price or a date. Best match
+ * is ranked in the service (`findCatalogMatchFacts`); here it falls back to newest.
+ */
 const CATALOG_ORDER: Record<CatalogSort, Prisma.AssetOrderByWithRelationInput[]> = {
-  newest: [{ publishedAt: "desc" }, { id: "asc" }],
-  "price-asc": [{ priceEur: { sort: "asc", nulls: "last" } }, { publishedAt: "desc" }, { id: "asc" }],
-  "price-desc": [{ priceEur: { sort: "desc", nulls: "last" } }, { publishedAt: "desc" }, { id: "asc" }],
+  newest: NEWEST_FIRST,
+  "price-asc": [{ priceEur: { sort: "asc", nulls: "last" } }, ...NEWEST_FIRST],
+  "price-desc": [{ priceEur: { sort: "desc", nulls: "last" } }, ...NEWEST_FIRST],
+  "best-match": NEWEST_FIRST,
 };
 
 export async function findCatalogAssets(filters: CatalogFilters, skip: number, take: number) {
@@ -96,6 +95,21 @@ export async function findCatalogAssets(filters: CatalogFilters, skip: number, t
     skip,
     take,
   });
+}
+
+/** What `matchScore` reads, plus the tie-breaker, for every match (newest first, capped). */
+export async function findCatalogMatchFacts(filters: CatalogFilters, take: number) {
+  return db.asset.findMany({
+    where: catalogWhere(filters),
+    select: { id: true, category: true, country: true, priceEur: true, businessStatus: true, publishedAt: true },
+    orderBy: NEWEST_FIRST,
+    take,
+  });
+}
+
+/** Card rows for the given ids, still publicly visible. The caller restores the order. */
+export async function findCatalogAssetsByIds(ids: string[]) {
+  return db.asset.findMany({ where: { AND: [publicAssetWhere, { id: { in: ids } }] }, select: assetCardSelect });
 }
 
 /** Matching assets per category, ignoring the category filter (facet counts, SPEC §5 S3). */
@@ -127,6 +141,27 @@ export async function findCatalogFacetValues() {
 
 export async function findAssetDetailBySlug(slug: string) {
   return db.asset.findUnique({ where: { slug }, select: assetDetailSelect });
+}
+
+/**
+ * The seller's published assets, newest first, with what `matchScore` reads: the assets they
+ * may contact a buyer about (SPEC §4.2) and rank buyers for (S8).
+ */
+export async function findPublishedAssetsOf(sellerId: string) {
+  return db.asset.findMany({
+    where: { sellerId, status: "PUBLISHED" },
+    orderBy: NEWEST_FIRST,
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      category: true,
+      country: true,
+      priceEur: true,
+      businessStatus: true,
+      publishedAt: true,
+    },
+  });
 }
 
 export async function findConversationId(assetId: string, buyerId: string): Promise<string | null> {

@@ -15,7 +15,9 @@ import {
   findAssetForEdit,
   findAssetOwnership,
   findCatalogAssets,
+  findCatalogAssetsByIds,
   findCatalogFacetValues,
+  findCatalogMatchFacts,
   findConversationId,
   findOwnAssets,
   insertAsset,
@@ -25,6 +27,9 @@ import {
 } from "@/server/assets/asset.repo";
 import { type AssetInput, assetIdSchema } from "@/server/assets/asset.schema";
 import { type CurrentUser, getCurrentUser } from "@/server/auth/session";
+import { getViewerMatchContext } from "@/server/buyers/buyer.service";
+import { type MatchProfile, matchScore } from "@/server/matching/match-score";
+import { inRankedOrder, MAX_RANKED_ROWS, type Ranked, rankBy, rankedPage } from "@/server/matching/rank";
 import {
   canSeeSellerIdentity,
   canViewAsset,
@@ -38,13 +43,24 @@ const CATEGORIES = Object.values(Category);
 
 // ─── Catalog (S3) ────────────────────────────────────────────────────────────────────────
 
+export interface CatalogAsset extends AssetCardData {
+  /** The viewing buyer's match score (SPEC §4.4), or null for everyone else. */
+  match: number | null;
+}
+
+/** "available" for buyers with a profile; buyers without one see it disabled. */
+export type BestMatchAvailability = "available" | "needs-profile" | "hidden";
+
 export interface CatalogPage {
-  assets: AssetCardData[];
+  assets: CatalogAsset[];
   /** Assets matching every filter. */
   total: number;
   /** The page actually shown: a page past the end is clamped to the last one. */
   page: number;
   pageCount: number;
+  /** The sort applied: `best-match` falls back to `newest` when there is nothing to score. */
+  sort: CatalogFilters["sort"];
+  bestMatch: BestMatchAvailability;
   /** Per category, matching every filter except the category (tab counts). */
   categoryCounts: Record<Category, number>;
   /** The "All" tab: the sum of every category count. */
@@ -55,11 +71,30 @@ function findPage(filters: CatalogFilters, page: number): Promise<AssetCardData[
   return findCatalogAssets(filters, (page - 1) * CATALOG_PAGE_SIZE, CATALOG_PAGE_SIZE);
 }
 
-export async function listCatalog(filters: CatalogFilters): Promise<CatalogPage> {
-  // Both queries in parallel. Only a page past the end (stale link) costs a second fetch.
-  const [groups, requestedRows] = await Promise.all([
+/** Every matching asset's id, ranked for this buyer (best first). */
+async function rankCatalog(filters: CatalogFilters, profile: MatchProfile): Promise<Ranked[]> {
+  const facts = await findCatalogMatchFacts(filters, MAX_RANKED_ROWS);
+  return rankBy(facts, (asset) => matchScore(asset, profile), (asset) => asset.publishedAt);
+}
+
+async function findRankedPage(ranked: Ranked[], page: number): Promise<AssetCardData[]> {
+  const shown = rankedPage(ranked, page, CATALOG_PAGE_SIZE);
+  return inRankedOrder(await findCatalogAssetsByIds(shown.map((entry) => entry.id)), shown);
+}
+
+export async function listCatalog(requested: CatalogFilters): Promise<CatalogPage> {
+  const { isBuyer, profile } = await getViewerMatchContext();
+  // Best match needs a profile to score against; without one the catalog shows the newest.
+  const filters: CatalogFilters =
+    requested.sort === "best-match" && !profile ? { ...requested, sort: "newest" } : requested;
+  const ranking = filters.sort === "best-match" ? profile : null;
+
+  // Facet counts and the results in parallel. Only a page past the end (stale link) costs a
+  // second fetch; best match always loads its page after ranking.
+  const [groups, ranked, requestedRows] = await Promise.all([
     countCatalogAssetsByCategory(filters),
-    findPage(filters, filters.page),
+    ranking ? rankCatalog(filters, ranking) : null,
+    ranking ? null : findPage(filters, filters.page),
   ]);
   const categoryCounts = Object.fromEntries(
     CATEGORIES.map((category) => [category, groups.find((group) => group.category === category)?.count ?? 0]),
@@ -69,15 +104,29 @@ export async function listCatalog(filters: CatalogFilters): Promise<CatalogPage>
   // the sum over the selected categories: one query fewer than a separate COUNT(*).
   const allCount = groups.reduce((sum, group) => sum + group.count, 0);
   const total =
-    filters.categories.length === 0
+    ranked?.length ??
+    (filters.categories.length === 0
       ? allCount
-      : filters.categories.reduce((sum, category) => sum + categoryCounts[category], 0);
+      : filters.categories.reduce((sum, category) => sum + categoryCounts[category], 0));
 
   const pageCount = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
   const page = Math.min(filters.page, pageCount);
-  const assets = page === filters.page ? requestedRows : await findPage(filters, page);
+  const rows = ranked
+    ? await findRankedPage(ranked, page)
+    : requestedRows && page === filters.page
+      ? requestedRows
+      : await findPage(filters, page);
 
-  return { assets, total, page, pageCount, categoryCounts, allCount };
+  return {
+    assets: rows.map((row) => ({ ...row, match: profile ? matchScore(row, profile) : null })),
+    total,
+    page,
+    pageCount,
+    sort: filters.sort,
+    bestMatch: profile ? "available" : isBuyer ? "needs-profile" : "hidden",
+    categoryCounts,
+    allCount,
+  };
 }
 
 export interface FacetOption {
@@ -131,6 +180,8 @@ export interface AssetDetailView {
   sellerName: string | null;
   /** The viewing buyer's existing thread about this asset. */
   conversationId: string | null;
+  /** The viewing buyer's match score, or null (not a buyer, or no profile yet). */
+  match: number | null;
 }
 
 /** Slugs are generated as lower-case words and digits joined by hyphens. */
@@ -144,7 +195,11 @@ const MAX_SLUG_LENGTH = 120;
 export const getAssetDetail = cache(async (slug: string): Promise<AssetDetailView | null> => {
   if (slug.length > MAX_SLUG_LENGTH || !SLUG_PATTERN.test(slug)) return null;
 
-  const [viewer, row] = await Promise.all([getCurrentUser(), findAssetDetailBySlug(slug)]);
+  const [viewer, row, { profile }] = await Promise.all([
+    getCurrentUser(),
+    findAssetDetailBySlug(slug),
+    getViewerMatchContext(),
+  ]);
   if (!row || !canViewAsset(row, viewer)) return null;
 
   const conversationId = viewer?.role === "BUYER" ? await findConversationId(row.id, viewer.id) : null;
@@ -160,6 +215,7 @@ export const getAssetDetail = cache(async (slug: string): Promise<AssetDetailVie
       ? (seller.companyName ?? seller.name)
       : null,
     conversationId,
+    match: profile ? matchScore(row, profile) : null,
   };
 });
 

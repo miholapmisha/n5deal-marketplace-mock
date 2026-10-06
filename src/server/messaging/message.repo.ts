@@ -103,15 +103,6 @@ export async function findBuyerForContact(buyerId: string) {
   });
 }
 
-/** The seller's published assets: the only ones they may contact a buyer about (SPEC §4.2). */
-export async function findPublishedAssetsOf(sellerId: string) {
-  return db.asset.findMany({
-    where: { sellerId, status: "PUBLISHED" },
-    orderBy: [{ publishedAt: "desc" }, { id: "asc" }],
-    select: { id: true, title: true },
-  });
-}
-
 /** Threads between one buyer and one seller (one per asset), most recent first. */
 export async function findThreadsBetween(buyerId: string, sellerId: string) {
   return db.conversation.findMany({

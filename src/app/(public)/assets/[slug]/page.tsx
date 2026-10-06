@@ -6,6 +6,7 @@ import { cn } from "cn";
 
 import { AssetActions } from "@/components/asset-detail/asset-actions";
 import { AssetStatusBanner } from "@/components/asset-detail/asset-status-banner";
+import { MatchBadge } from "@/components/match-badge";
 import { Badge } from "@/components/ui/badge";
 import { CATALOG_PATH } from "@/lib/catalog-filters";
 import { countryFlag, countryName, formatDate, formatPrice } from "@/lib/format";
@@ -56,6 +57,7 @@ export default async function AssetDetailPage({ params }: PageProps<"/assets/[sl
                 {countryName(asset.country)}
               </span>
               <div className="flex flex-wrap gap-1.5">
+                {view.match !== null && <MatchBadge score={view.match} />}
                 <Badge variant="secondary">{CATEGORY_LABELS[asset.category]}</Badge>
                 <Badge
                   variant="outline"

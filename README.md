@@ -187,6 +187,22 @@ at once via `useOptimistic`; new messages from the other side appear on the next
 refresh (realtime is out of scope). Sending is refused in the service when the counterpart is
 suspended or removed; the thread stays readable with a banner.
 
+### Match score: one pure function, ranked in the service
+
+`matchScore(asset, buyerProfile)` (SPEC §4.4: category 40, country 25, price vs ticket 25,
+business status 10) is the only definition of "fit". Buyers see it as a badge on every asset
+card and as the *Best match* sort; sellers use it to rank the buyer directory for one of their
+published assets ("Rank for") and see it per asset, split into its signals, on a buyer's page.
+Postgres cannot sort by a TypeScript function, so ranking is three steps: fetch the scoring
+columns of every match (capped at 1000, newest first), score and sort in memory (score, then
+recency, then id, so pagination is stable), then load only the visible page by id — still
+through the visibility `where` builders. A SQL copy of the formula was rejected: two sources of
+truth that drift, and raw SQL would bypass the policy builders. At real scale the next step is
+precomputed scores. The 20% price band is checked in integer arithmetic, not with ×0.8 / ×1.2.
+`?rank=` is never looked up directly: it must be one of the viewer's own published assets,
+which the service has already loaded for the dropdown, so another seller's asset ids cannot be
+probed.
+
 ### Stack
 
 Next.js 16 (App Router, React Compiler) · TypeScript strict · Tailwind CSS v4 + shadcn/ui ·

@@ -4,13 +4,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { BuyerFit } from "@/components/buyers/buyer-fit";
 import { Avatar } from "@/components/messaging/avatar";
 import { ContactBuyerForm } from "@/components/messaging/contact-buyer-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { buyersHref, DEFAULT_BUYER_FILTERS } from "@/lib/buyer-filters";
 import { countryFlag, countryName, formatDate, formatTicketRange } from "@/lib/format";
 import { BUYER_TYPE_LABELS, CATEGORY_LABELS, STATUS_PREF_LABELS, TIMELINE_LABELS } from "@/lib/labels";
 import { conversationPath } from "@/lib/messaging";
+import { parseAssetParam } from "@/lib/parse-buyer-filters";
 import { requireRole } from "@/server/auth/guards";
 import { type BuyerDetail, getBuyerDetail } from "@/server/buyers/buyer.service";
 import { type ContactBuyerOptions, getContactBuyerOptions } from "@/server/messaging/message.service";
@@ -21,17 +24,21 @@ export async function generateMetadata({ params }: PageProps<"/buyers/[id]">): P
 }
 
 // S9. Private (sellers and managers only); a buyer who is suspended, removed, or hidden from
-// sellers is a 404. Sellers contact the buyer about one of their own published assets.
-export default async function BuyerDetailPage({ params }: PageProps<"/buyers/[id]">) {
+// sellers is a 404. Sellers see how the buyer fits each of their published assets and contact
+// them about one; `?asset=` (from the ranked directory) preselects it.
+export default async function BuyerDetailPage({ params, searchParams }: PageProps<"/buyers/[id]">) {
   const viewer = await requireRole("SELLER", "MANAGER");
   const buyer = await getBuyerDetail((await params).id);
   if (!buyer) notFound();
+  const assetParam = parseAssetParam(await searchParams);
   const contact = viewer.role === "SELLER" ? await getContactBuyerOptions(buyer.id) : null;
+  // Back to the directory still ranked for the asset the seller came from.
+  const rankedFrom = contact?.assets.some((asset) => asset.id === assetParam) ? assetParam : null;
 
   return (
     <div className="flex flex-col gap-6">
       <Link
-        href="/buyers"
+        href={buyersHref({ ...DEFAULT_BUYER_FILTERS, rank: rankedFrom })}
         className="flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ArrowLeft className="size-4" aria-hidden />
@@ -39,11 +46,17 @@ export default async function BuyerDetailPage({ params }: PageProps<"/buyers/[id
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-        <BuyerProfile buyer={buyer} />
-        <aside className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-card lg:sticky lg:top-20">
+        <div className="flex min-w-0 flex-col gap-6">
+          <BuyerProfile buyer={buyer} />
+          {contact && contact.assets.length > 0 && <BuyerFit assets={contact.assets} highlightId={rankedFrom} />}
+        </div>
+        <aside
+          id="contact"
+          className="flex scroll-mt-20 flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-card lg:sticky lg:top-20"
+        >
           <h2 className="text-lg font-semibold">Contact buyer</h2>
           {contact ? (
-            <ContactBlock buyer={buyer} contact={contact} />
+            <ContactBlock buyer={buyer} contact={contact} initialAssetId={rankedFrom} />
           ) : (
             <p className="text-sm text-muted-foreground">
               Sellers contact buyers about their own assets. Managers do not take part in conversations.
@@ -66,7 +79,7 @@ function BuyerProfile({ buyer }: { buyer: BuyerDetail }) {
   ];
 
   return (
-    <article className="flex min-w-0 flex-col gap-6">
+    <article className="flex flex-col gap-6">
       <header className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-card sm:flex-row sm:items-center sm:p-6">
         <Avatar name={title} className="size-14 text-lg" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -121,7 +134,13 @@ function BuyerProfile({ buyer }: { buyer: BuyerDetail }) {
   );
 }
 
-function ContactBlock({ buyer, contact }: { buyer: BuyerDetail; contact: ContactBuyerOptions }) {
+interface ContactBlockProps {
+  buyer: BuyerDetail;
+  contact: ContactBuyerOptions;
+  initialAssetId: string | null;
+}
+
+function ContactBlock({ buyer, contact, initialAssetId }: ContactBlockProps) {
   const firstName = buyer.name.split(" ")[0];
 
   return (
@@ -129,7 +148,8 @@ function ContactBlock({ buyer, contact }: { buyer: BuyerDetail; contact: Contact
       {contact.assets.length > 0 ? (
         <ContactBuyerForm
           buyerId={buyer.id}
-          assets={contact.assets}
+          assets={contact.assets.map(({ id, title, match }) => ({ id, title, match }))}
+          initialAssetId={initialAssetId}
           threadByAsset={Object.fromEntries(contact.threads.map((thread) => [thread.assetId, thread.id]))}
           defaultBody={`Hello ${firstName}, your acquisition profile looks like a good fit for one of our listings. Would you like to receive more details?`}
         />

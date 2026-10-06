@@ -95,7 +95,7 @@ Each file has these sections:
 - [x] M3 — Catalog + detail + URL filters + facet counts
 - [x] M4 — Asset form, my assets, buyer profile
 - [x] M5 — Messaging + contact flows (S2, S4 → S2, S9 buyer detail)
-- [ ] M6 — Buyer directory + match score
+- [x] M6 — Buyer directory + match score (S8, Rank for, S3 best match, S9 fit)
 - [ ] M7 — Manager + moderation
 - [ ] M8 — AI search + fallback
 - [ ] M9 — Tests, README final, polish

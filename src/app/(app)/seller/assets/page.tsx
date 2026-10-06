@@ -1,4 +1,4 @@
-import { MessagesSquare, PackagePlus, Pencil, Plus } from "lucide-react";
+import { MessagesSquare, PackagePlus, Pencil, Plus, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -6,6 +6,7 @@ import { AssetStatusBadge } from "@/components/seller/asset-status-badge";
 import { AssetStatusToggle } from "@/components/seller/asset-status-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { buyersHref, DEFAULT_BUYER_FILTERS } from "@/lib/buyer-filters";
 import { formatDate, formatPrice } from "@/lib/format";
 import { CATEGORY_LABELS } from "@/lib/labels";
 import { requireRole } from "@/server/auth/guards";
@@ -87,13 +88,24 @@ function AssetRow({ asset }: { asset: OwnAssetRow }) {
         </dl>
       </div>
 
-      <div className="flex shrink-0 items-start gap-2 md:justify-end">
+      <div className="flex shrink-0 flex-wrap items-start gap-2 md:justify-end">
         <Button asChild size="sm" variant="ghost" className="rounded-full">
           <Link href={`/seller/assets/${asset.id}/edit`} aria-label={`Edit ${asset.title}`}>
             <Pencil aria-hidden />
             Edit
           </Link>
         </Button>
+        {asset.status === "PUBLISHED" && (
+          <Button asChild size="sm" variant="ghost" className="rounded-full">
+            <Link
+              href={buyersHref({ ...DEFAULT_BUYER_FILTERS, rank: asset.id })}
+              aria-label={`Rank buyers for ${asset.title}`}
+            >
+              <Users aria-hidden />
+              Rank buyers
+            </Link>
+          </Button>
+        )}
         {asset.status === "DRAFT" && <AssetStatusToggle assetId={asset.id} mode="publish" />}
         {asset.status === "PUBLISHED" && <AssetStatusToggle assetId={asset.id} mode="unpublish" />}
       </div>

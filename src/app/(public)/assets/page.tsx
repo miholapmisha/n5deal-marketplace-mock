@@ -22,11 +22,12 @@ export const metadata: Metadata = {
 
 // S3. Every filter lives in the query string: the page parses it, the server filters and
 // counts, and client controls only ever change the URL. Reading searchParams makes the page
-// render per request.
+// render per request. A buyer with a profile also gets match badges and the Best match sort.
 export default async function AssetsPage({ searchParams }: PageProps<"/assets">) {
   const requested = parseCatalogFilters(await searchParams);
   const [catalog, options] = await Promise.all([listCatalog(requested), getCatalogFacetOptions(requested)]);
-  const filters: CatalogFilters = { ...requested, page: catalog.page };
+  // What was applied: the clamped page, and Newest when best match had nothing to score.
+  const filters: CatalogFilters = { ...requested, page: catalog.page, sort: catalog.sort };
 
   const first = (catalog.page - 1) * CATALOG_PAGE_SIZE + 1;
   const last = first + catalog.assets.length - 1;
@@ -62,7 +63,7 @@ export default async function AssetsPage({ searchParams }: PageProps<"/assets">)
             </h2>
             <div className="flex items-center gap-2">
               <FilterDrawer options={options} total={catalog.total} />
-              <SortSelect />
+              <SortSelect bestMatch={catalog.bestMatch} />
             </div>
           </div>
 
@@ -71,10 +72,10 @@ export default async function AssetsPage({ searchParams }: PageProps<"/assets">)
           {catalog.assets.length === 0 ? (
             <EmptyState filters={filters} />
           ) : (
-            <ul className="grid gap-5 transition-opacity sm:grid-cols-2 xl:grid-cols-3 group-has-data-pending/catalog:opacity-50">
+            <ul className="grid grid-cols-1 gap-5 transition-opacity sm:grid-cols-2 xl:grid-cols-3 group-has-data-pending/catalog:opacity-50">
               {catalog.assets.map((asset) => (
                 <li key={asset.id} className="flex">
-                  <AssetCard asset={asset} />
+                  <AssetCard asset={asset} match={asset.match} />
                 </li>
               ))}
             </ul>
